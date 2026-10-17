@@ -66,7 +66,7 @@ export default function Search() {
     [committed, scope],
   )
 
-  const { items, loading, error, hasMore, next } = usePaged<TmdbPoster>(run, [committed, scope])
+  const { items, loading, error, hasMore, next, reload } = usePaged<TmdbPoster>(run, [committed, scope])
 
   /* search/multi mixes people in with the titles — split them so the poster
    * grid stays posters-only and the actors get their own band on top */
@@ -152,7 +152,7 @@ export default function Search() {
         </div>
       </div>
 
-      {data.recentSearches.length ? (
+      {!searching && data.recentSearches.length ? (
         <div className="search-recent">
           <span className="field-label">recent</span>
           {data.recentSearches.slice(0, 8).map((r) => (
@@ -185,7 +185,7 @@ export default function Search() {
             ) : null}
           </div>
 
-          {error ? <ErrorNote message={error} /> : null}
+          {error ? <ErrorNote message={error} onRetry={reload} /> : null}
 
           {people.length ? (
             scope === 'person' ? (
@@ -218,7 +218,7 @@ export default function Search() {
                 <MediaCard key={`${item.id}-${i}`} item={{ ...item, media_type: item.media_type === 'tv' ? 'tv' : 'movie' }} index={i} />
               ))}
             </div>
-          ) : !loading && !people.length ? (
+          ) : !loading && !error && !people.length ? (
             <div className="empty">
               <div className="empty__art">
                 <IcSparkle />
@@ -231,7 +231,7 @@ export default function Search() {
             </div>
           ) : null}
 
-          {hasMore && !loading ? (
+          {hasMore && !loading && !error ? (
             <div style={{ textAlign: 'center', marginTop: 20 }}>
               <button className="btn btn--outline" onClick={next}>
                 Load more
