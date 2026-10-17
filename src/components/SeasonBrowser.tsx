@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { season } from '../lib/tmdb'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { season as seasonEpisodes } from '../lib/tmdb'
 import type { TvDetail, TvEpisode, WatchProgress } from '../lib/types'
 import { cn, runtime, secondsToClock } from '../lib/utils'
 import { useStore } from '../hooks/useStore'
@@ -8,23 +8,45 @@ import { SmartLink } from './SmartLink'
 import { IcPlay, IcDownload, IcClock } from './icons'
 
 /** Season tabs + the episode list. Episodes come from TMDB one season at a
- *  time — the show payload only carries season metadata. */
-export function SeasonBrowser({ show, onDownload }: { show: TvDetail; onDownload?: (ep: TvEpisode, seasonNo: number) => void }) {
+ *  time — the show payload only carries season metadata.
+ *
+ *  The season can be driven from the outside (the page keeps it so the play
+ *  button knows where to send you) or left to the component. */
+export function SeasonBrowser({
+  show,
+  onDownload,
+  season,
+  onSeasonChange,
+}: {
+  show: TvDetail
+  onDownload?: (ep: TvEpisode, seasonNo: number) => void
+  season?: number
+  onSeasonChange?: (seasonNo: number) => void
+}) {
   const seasons = useMemo(() => (show.seasons ?? []).filter((s) => s.season_number > 0), [show.seasons])
-  const [active, setActive] = useState(seasons[0]?.season_number ?? 1)
+  const [internal, setInternal] = useState(seasons[0]?.season_number ?? 1)
   const [data, setData] = useState<TvEpisode[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { data: userData } = useStore()
+  const active = season ?? internal
+
+  const setActive = useCallback(
+    (n: number) => {
+      setInternal(n)
+      onSeasonChange?.(n)
+    },
+    [onSeasonChange],
+  )
 
   useEffect(() => {
     if (seasons.some((s) => s.season_number === active)) return
     setActive(seasons[0]?.season_number ?? 1)
-  }, [seasons, active])
+  }, [seasons, active, setActive])
 
   useEffect(() => {
     let alive = true
     setError(null)
-    season(show.id, active)
+    seasonEpisodes(show.id, active)
       .then((res) => {
         if (alive) setData(res.episodes ?? [])
       })

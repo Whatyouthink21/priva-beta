@@ -5,13 +5,12 @@ import { useAsync } from '../hooks/useAsync'
 import { useStore } from '../hooks/useStore'
 import { cn, runtime, year } from '../lib/utils'
 import { COUNTRY_NAME } from '../lib/constants'
-import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights } from '../components/DetailBits'
+import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights, SideCard } from '../components/DetailBits'
 import { CastStrip, CreditsTable } from '../components/CastCrew'
 import { StreamingProviders } from '../components/Providers'
 import { SeasonBrowser } from '../components/SeasonBrowser'
 import { Downloads } from '../components/Downloads'
 import { ErrorNote, PageHead } from '../components/Bits'
-import { Poster } from '../components/Poster'
 import { Modal } from '../components/Modal'
 import { IcDownload, IcExternal, IcLink } from '../components/icons'
 import { NoKey } from './MovieDetail'
@@ -40,6 +39,8 @@ export default function TvPage({ mode }: { mode?: 'credits' }) {
 function ShowView({ show, region, onRegion }: { show: Show; region: string; onRegion: (r: string) => void }) {
   const [download, setDownload] = useState<{ season: number; episode: number; name: string } | null>(null)
   const [copied, setCopied] = useState(false)
+  const [season, setSeason] = useState<number | undefined>(undefined)
+  const { data: userData } = useStore()
   const meta = api.toMeta({ ...show, media_type: 'tv', name: show.name })
   const trailer = useMemo(() => api.pickTrailer(show.videos), [show.videos])
   const cast = show.credits?.cast ?? []
@@ -51,6 +52,16 @@ function ShowView({ show, region, onRegion }: { show: Show; region: string; onRe
   const cert = show.content_ratings?.results?.find((r) => r.iso_3166_1 === region)?.rating
   const onAirNow = show.in_production
   const avgEpisode = show.episode_run_time?.[0]
+
+  /* the play button follows the season you picked, and lands on the episode
+   * you were last watching in it */
+  const playSeason = season ?? seasons[0]?.season_number ?? 1
+  const prefix = `tv:${show.id}:s${playSeason}e`
+  const lastWatched = Object.entries(userData.progress)
+    .filter(([key]) => key.startsWith(prefix))
+    .map(([key, value]) => ({ episode: Number(key.slice(prefix.length)) || 0, at: value.updatedAt }))
+    .sort((a, b) => b.at - a.at)[0]
+  const playEpisode = lastWatched?.episode || 1
 
   return (
     <>
@@ -85,50 +96,24 @@ function ShowView({ show, region, onRegion }: { show: Show; region: string; onRe
       />
 
       <div className="wrap page">
-        <div className="two-col two-col--sticky">
-          <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
-            <section className="panel">
-              <div className="panel__head">
-                <h3>The premise</h3>
-                <div className="grow" />
-                <span className="hint">{show.status}</span>
-              </div>
-              <p className="prose" style={{ marginTop: 0 }}>
-                {show.overview || 'No synopsis on TMDB yet.'}
-              </p>
-              {show.keywords?.results?.length ? (
-                <div className="tag-row">
-                  {show.keywords.results.slice(0, 12).map((k) => (
-                    <span className="badge" key={k.id}>
-                      {k.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              <RateThis meta={meta} />
-            </section>
-
-            <PlayCard meta={meta} season={seasons[0]?.season_number} episode={1} onDownload={() => setDownload({ season: seasons[0]?.season_number ?? 1, episode: 1, name: 'S1·E1' })} />
-
+        <div className="two-col">
+          <div className="col-main">
             <SeasonBrowser
               show={show}
+              season={season}
+              onSeasonChange={setSeason}
               onDownload={(ep: TvEpisode, seasonNo: number) => setDownload({ season: seasonNo, episode: ep.episode_number, name: ep.name })}
             />
 
-            <StreamingProviders payload={show['watch/providers']} region={region} onRegion={onRegion} />
-
-            {cast.length ? <CastStrip cast={cast} seeAllTo={`/tv/${show.id}/credits`} /> : null}
-            <CrewHighlights crew={crew} />
-
-            <MoreLikeThis type="tv" id={show.id} title={show.name} />
-          </div>
-
-          <aside style={{ display: 'grid', gap: 16, minWidth: 0 }}>
-            <div className="side-poster">
-              <Poster path={show.poster_path} size="w342" alt={`${show.name} poster`} />
-            </div>
+            <PlayCard
+              meta={meta}
+              season={playSeason}
+              episode={playEpisode}
+              onDownload={() => setDownload({ season: playSeason, episode: playEpisode, name: `S${playSeason}·E${playEpisode}` })}
+            />
 
             <Facts
+              wide
               items={[
                 {
                   label: 'IMDb',
@@ -156,14 +141,58 @@ function ShowView({ show, region, onRegion }: { show: Show; region: string; onRe
 
             <section className="panel">
               <div className="panel__head">
+                <h3>Your take</h3>
+                <div className="grow" />
+                <span className="hint">{show.status}</span>
+              </div>
+              <RateThis meta={meta} />
+              {show.keywords?.results?.length ? (
+                <div className="tag-row">
+                  {show.keywords.results.slice(0, 12).map((k) => (
+                    <span className="badge" key={k.id}>
+                      {k.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+
+            <StreamingProviders payload={show['watch/providers']} region={region} onRegion={onRegion} />
+
+            {cast.length ? <CastStrip cast={cast} seeAllTo={`/tv/${show.id}/credits`} /> : null}
+            <CrewHighlights crew={crew} />
+
+            <MoreLikeThis type="tv" id={show.id} title={show.name} />
+          </div>
+
+          <aside className="col-side">
+            <SideCard
+              poster={show.poster_path}
+              title={show.name}
+              year={year(firstDate)}
+              runtimeLabel={avgEpisode ? `${runtime(avgEpisode)}/ep` : null}
+              score={show.vote_average}
+              votes={show.vote_count}
+              certification={cert}
+            />
+
+            <section className="panel">
+              <div className="panel__head">
                 <h3>Jump to a season</h3>
+                <div className="grow" />
+                <span className="hint">{seasons.length}</span>
               </div>
               <div className="link-list">
-                {seasons.slice(0, 10).map((s) => (
-                  <Link key={s.id ?? s.season_number} to={`/tv/${show.id}/credits?season=${s.season_number}#episodes`}>
+                {seasons.slice(0, 12).map((s) => (
+                  <a
+                    key={s.id ?? s.season_number}
+                    href="#episodes"
+                    aria-current={s.season_number === playSeason ? 'true' : undefined}
+                    onClick={() => setSeason(s.season_number)}
+                  >
                     {s.name}
                     <small>{s.episode_count} eps</small>
-                  </Link>
+                  </a>
                 ))}
               </div>
             </section>
@@ -186,7 +215,10 @@ function ShowView({ show, region, onRegion }: { show: Show; region: string; onRe
                 <a className="btn btn--sm btn--outline" href={`https://www.themoviedb.org/tv/${show.id}`} target="_blank" rel="noreferrer noopener">
                   TMDB <IcExternal size={13} />
                 </a>
-                <button className="btn btn--sm btn--outline" onClick={() => setDownload({ season: seasons[0]?.season_number ?? 1, episode: 1, name: 'S1·E1' })}>
+                <button
+                  className="btn btn--sm btn--outline"
+                  onClick={() => setDownload({ season: playSeason, episode: playEpisode, name: `S${playSeason}·E${playEpisode}` })}
+                >
                   <IcDownload size={14} /> Downloads
                 </button>
               </div>

@@ -76,14 +76,13 @@ export function HeroTrailer({ backdrop, poster, trailer, title, className, scrim
   }, [mounted, ready])
 
   return (
-    <div className={cn('hero__media', className)} ref={hostRef}>
+    <div className={cn('hero__media', className)} ref={hostRef} data-paused={inView ? undefined : 'true'}>
       <img
         src={backdrop ? `https://image.tmdb.org/t/p/w1280${backdrop}` : poster ? `https://image.tmdb.org/t/p/w780${poster}` : ''}
         alt=""
         aria-hidden="true"
         data-shown={ready ? 'false' : 'true'}
-        // @ts-expect-error fetchpriority is not typed in React 19 yet
-        fetchpriority="high"
+        fetchPriority="high"
         decoding="async"
         style={backdrop || poster ? undefined : { display: 'none' }}
       />

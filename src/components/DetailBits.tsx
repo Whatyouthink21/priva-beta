@@ -165,17 +165,28 @@ export function PlayCard({
 export function Facts({
   items,
   title,
+  note,
+  wide = false,
 }: {
   items: { label: string; value: ReactNode }[]
   title?: string
+  note?: ReactNode
+  /** wide = lay the facts out in columns instead of one long list */
+  wide?: boolean
 }) {
   const rows = items.filter((i) => i.value !== null && i.value !== undefined && i.value !== '' && i.value !== '—')
   return (
     <section className="panel">
       <div className="panel__head">
         <h3>{title ?? 'The numbers'}</h3>
+        {note ? (
+          <>
+            <div className="grow" />
+            <span className="hint">{note}</span>
+          </>
+        ) : null}
       </div>
-      <div className="kv">
+      <div className={cn('kv', wide && 'kv--wide')}>
         {rows.map((r) => (
           <div key={r.label}>
             <b>{r.label}</b>
@@ -184,6 +195,50 @@ export function Facts({
         ))}
       </div>
     </section>
+  )
+}
+
+/** The little identity card that heads the sidebar: poster thumb, title and
+ *  the three numbers that matter. A full-size poster used to sit here and
+ *  pushed everything else off the screen. */
+export function SideCard({
+  poster,
+  title,
+  year,
+  runtimeLabel,
+  score,
+  votes,
+  certification,
+}: {
+  poster?: string | null
+  title: string
+  year?: number | string | null
+  runtimeLabel?: string | null
+  score?: number | null
+  votes?: number | null
+  certification?: string | null
+}) {
+  return (
+    <div className="side-card">
+      <div className="side-card__art">
+        <Poster path={poster} size="w342" alt={`${title} poster`} />
+      </div>
+      <div className="side-card__body">
+        <div className="side-card__title">{title}</div>
+        <div className="side-card__meta">
+          {[year, runtimeLabel, certification].filter(Boolean).join(' · ')}
+        </div>
+        {score ? (
+          <div className="side-card__score">
+            <span className="rating">
+              <i>★</i>
+              {score.toFixed(1)}
+            </span>
+            {votes ? <span className="hint num">{votes.toLocaleString()} votes</span> : null}
+          </div>
+        ) : null}
+      </div>
+    </div>
   )
 }
 

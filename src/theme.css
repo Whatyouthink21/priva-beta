@@ -29,7 +29,7 @@
 
 :root {
   color-scheme: dark;
-  --grain: 0.32;
+  --grain: 0.06;
   --vignette: rgba(0, 0, 0, 0.62);
   --scrim-bottom: linear-gradient(to top, var(--color-ink) 2%, rgba(8, 9, 12, 0.86) 26%, rgba(8, 9, 12, 0.35) 62%, rgba(8, 9, 12, 0.1) 100%);
   --scrim-side: linear-gradient(90deg, rgba(8, 9, 12, 0.94) 0%, rgba(8, 9, 12, 0.72) 34%, rgba(8, 9, 12, 0.18) 66%, rgba(8, 9, 12, 0) 100%);
@@ -54,7 +54,7 @@
   --color-mute: #5c5a53;
   --color-dim: #85827a;
   --color-flare: #d83c07;
-  --grain: 0.06;
+  --grain: 0.05;
   --vignette: rgba(120, 108, 90, 0.18);
   --scrim-bottom: linear-gradient(to top, var(--color-ink) 4%, rgba(243, 240, 233, 0.9) 30%, rgba(243, 240, 233, 0.4) 70%, rgba(243, 240, 233, 0.08) 100%);
   --scrim-side: linear-gradient(90deg, rgba(243, 240, 233, 0.96) 0%, rgba(243, 240, 233, 0.8) 38%, rgba(243, 240, 233, 0.25) 72%, rgba(243, 240, 233, 0) 100%);

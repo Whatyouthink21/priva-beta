@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { firebaseImpl } from '../lib/firebase'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { firebaseImpl, hadSession, rememberSession } from '../lib/firebase'
 import { touchDevice, wipeCloud, writeProfile } from '../lib/firestore'
 import { bindCloud, getSnapshot, unbindCloud } from '../lib/store'
 import type { User } from 'firebase/auth'
@@ -18,6 +18,10 @@ async function sdk(): Promise<Sdk> {
 interface AuthApi {
   user: User | null
   ready: boolean
+  /** Load the (heavy) Firebase SDK on demand and resolve with the signed-in
+   *  user, or null. Used by the account button so an anonymous visitor never
+   *  downloads the SDK just to look at a menu. */
+  ensureAuth: () => Promise<User | null>
   signInEmail: (email: string, password: string) => Promise<void>
   signUpEmail: (name: string, email: string, password: string) => Promise<void>
   signInGoogle: () => Promise<void>
@@ -38,47 +42,92 @@ export function useAuth(): AuthApi {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [ready, setReady] = useState(false)
+  const userRef = useRef<User | null>(null)
+  const startRef = useRef<Promise<User | null> | null>(null)
+  const stopRef = useRef<(() => void) | null>(null)
+
+  /** Start the auth listener exactly once. Resolves with the first answer
+   *  Firebase gives us — that is "signed in" or "signed out". */
+  const start = useCallback((): Promise<User | null> => {
+    if (startRef.current) return startRef.current
+    startRef.current = (async () => {
+      const impl = await firebaseImpl()
+      if (!impl) {
+        setReady(true)
+        return null
+      }
+      return new Promise<User | null>((resolve) => {
+        let settled = false
+        const finish = (value: User | null) => {
+          if (settled) return
+          settled = true
+          resolve(value)
+        }
+        const timer = setTimeout(() => finish(userRef.current), 4000)
+        stopRef.current = impl.watchAuth(
+          (next) => {
+            clearTimeout(timer)
+            userRef.current = next
+            setUser(next)
+            setReady(true)
+            if (next) {
+              rememberSession(true)
+              void bindCloud({ kind: 'user', uid: next.uid, email: next.email })
+              // one doc per browser, so Settings can list and name the devices
+              void touchDevice(next.uid, getSnapshot().deviceId)
+              void writeProfile(next.uid, { displayName: next.displayName, email: next.email, photoURL: next.photoURL })
+            } else {
+              rememberSession(false)
+              unbindCloud()
+            }
+            finish(next)
+          },
+          () => {
+            clearTimeout(timer)
+            setReady(true)
+            finish(null)
+          },
+        )
+      })
+    })()
+    return startRef.current
+  }, [])
+
+  const ensureAuth = useCallback(async (): Promise<User | null> => {
+    if (userRef.current) return userRef.current
+    await start()
+    return userRef.current
+  }, [start])
 
   useEffect(() => {
-    let stop: (() => void) | undefined
-    let gone = false
-    void firebaseImpl().then((impl) => {
-      if (!impl) {
-        if (!gone) setReady(true)
-        return
-      }
-      stop = impl.watchAuth(
-        (next) => {
-          if (gone) return
-          setUser(next)
-          setReady(true)
-          if (next) {
-            void bindCloud({ kind: 'user', uid: next.uid, email: next.email })
-            // one doc per browser, so Settings can list and name the devices
-            void touchDevice(next.uid, getSnapshot().deviceId)
-            void writeProfile(next.uid, { displayName: next.displayName, email: next.email, photoURL: next.photoURL })
-          } else {
-            unbindCloud()
-          }
-        },
-        () => {
-          if (!gone) setReady(true)
-        },
-      )
-    })
+    // a browser that has never signed in does not need the SDK at all
+    if (!hadSession()) return
+    // …and a returning one should not compete with the first paint for
+    // bandwidth, so give the browser a moment to settle first
+    const idle = (window as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback
+    const handle = idle ? idle(() => void start(), { timeout: 2000 }) : window.setTimeout(() => void start(), 800)
     return () => {
-      gone = true
-      stop?.()
+      // only the *scheduling* is undone: the auth listener itself is global
+      // and stays alive, so StrictMode's double mount cannot leave us
+      // watching a dead observer
+      if (idle) {
+        const cancel = (window as { cancelIdleCallback?: (h: number) => void }).cancelIdleCallback
+        cancel?.(handle as number)
+      } else {
+        window.clearTimeout(handle as number)
+      }
     }
-  }, [])
+  }, [start])
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     const impl = await sdk()
+    await start() // the listener has to be watching to see the sign-in
     await impl.actions.signIn(email.trim(), password)
-  }, [])
+  }, [start])
 
   const signUpEmail = useCallback(async (name: string, email: string, password: string) => {
     const impl = await sdk()
+    await start()
     const cred = await impl.actions.signUp(email.trim(), password)
     const display = name.trim() || (email.split('@')[0] ?? 'watcher')
     try {
@@ -87,17 +136,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* cosmetic only */
     }
     await writeProfile(cred.user.uid, { displayName: display, email: cred.user.email })
-  }, [])
+  }, [start])
 
   const signInGoogle = useCallback(async () => {
     const impl = await sdk()
+    await start()
     await impl.actions.google()
-  }, [])
+  }, [start])
 
   const signOutNow = useCallback(async () => {
     const impl = await firebaseImpl()
     if (!impl) return
     await impl.actions.signOut()
+    rememberSession(false)
   }, [])
 
   const resetPassword = useCallback(async (email: string) => {
@@ -123,8 +174,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthApi>(
-    () => ({ user, ready, signInEmail, signUpEmail, signInGoogle, signOutNow, resetPassword, changeDisplayName, removeAccount }),
-    [user, ready, signInEmail, signUpEmail, signInGoogle, signOutNow, resetPassword, changeDisplayName, removeAccount],
+    () => ({ user, ready, ensureAuth, signInEmail, signUpEmail, signInGoogle, signOutNow, resetPassword, changeDisplayName, removeAccount }),
+    [user, ready, ensureAuth, signInEmail, signUpEmail, signInGoogle, signOutNow, resetPassword, changeDisplayName, removeAccount],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

@@ -5,12 +5,11 @@ import { useAsync } from '../hooks/useAsync'
 import { useStore } from '../hooks/useStore'
 import { cn, money, runtime, year } from '../lib/utils'
 import { COUNTRY_NAME, LANGUAGES } from '../lib/constants'
-import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights } from '../components/DetailBits'
+import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights, SideCard } from '../components/DetailBits'
 import { CastStrip, CreditsTable } from '../components/CastCrew'
 import { StreamingProviders } from '../components/Providers'
 import { Downloads } from '../components/Downloads'
 import { ErrorNote, PageHead } from '../components/Bits'
-import { Poster } from '../components/Poster'
 import { Modal } from '../components/Modal'
 import { IcDownload, IcExternal, IcLink, IcSearch } from '../components/icons'
 import { hasTmdbKey } from '../lib/env'
@@ -84,47 +83,12 @@ function MovieView({ movie, region, onRegion }: { movie: Movie; region: string; 
       />
 
       <div className="wrap page">
-        <div className="two-col two-col--sticky">
-          <div style={{ display: 'grid', gap: 16, minWidth: 0 }}>
-            <section className="panel">
-              <div className="panel__head">
-                <h3>Story</h3>
-                <div className="grow" />
-                <span className="hint">{movie.status}</span>
-              </div>
-              <p className="prose" style={{ marginTop: 0 }}>
-                {movie.overview || 'TMDB has no synopsis for this one yet — which usually means it is very new or very obscure.'}
-              </p>
-              {movie.keywords?.results?.length ? (
-                <div className="tag-row">
-                  {movie.keywords.results.slice(0, 12).map((k) => (
-                    <span className="badge" key={k.id}>
-                      {k.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              <RateThis meta={meta} />
-            </section>
-
+        <div className="two-col">
+          <div className="col-main">
             <PlayCard meta={meta} onDownload={() => setDownload(true)} />
 
-            <StreamingProviders payload={movie['watch/providers']} region={region} onRegion={onRegion} />
-
-            {cast.length ? <CastStrip cast={cast} seeAllTo={`/movie/${movie.id}/credits`} /> : null}
-            <CrewHighlights crew={crew} />
-
-            {movie.reviews?.results?.length ? <Reviews items={movie.reviews.results} /> : null}
-
-            <MoreLikeThis type="movie" id={movie.id} title={movie.title} />
-          </div>
-
-          <aside style={{ display: 'grid', gap: 16, minWidth: 0 }}>
-            <div className="side-poster">
-              <Poster path={movie.poster_path} size="w342" alt={`${movie.title} poster`} />
-            </div>
-
             <Facts
+              wide
               items={[
                 {
                   label: 'IMDb',
@@ -144,7 +108,7 @@ function MovieView({ movie, region, onRegion }: { movie: Movie; region: string; 
                     <>
                       {money(movie.revenue)}
                       {profit !== null ? (
-                        <em style={{ marginLeft: 8, color: profit > 0 ? 'var(--color-jade)' : 'var(--color-rose)' }}>
+                        <em style={{ display: 'block', color: profit > 0 ? 'var(--color-jade)' : 'var(--color-rose)' }}>
                           {profit > 0 ? '+' : '−'}
                           {money(Math.abs(profit))} vs budget
                         </em>
@@ -162,6 +126,45 @@ function MovieView({ movie, region, onRegion }: { movie: Movie; region: string; 
                 { label: 'Certification', value: cert },
                 { label: 'Status', value: movie.status },
               ]}
+            />
+
+            <section className="panel">
+              <div className="panel__head">
+                <h3>Your take</h3>
+                <div className="grow" />
+                <span className="hint">{movie.status}</span>
+              </div>
+              <RateThis meta={meta} />
+              {movie.keywords?.results?.length ? (
+                <div className="tag-row">
+                  {movie.keywords.results.slice(0, 12).map((k) => (
+                    <span className="badge" key={k.id}>
+                      {k.name}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+
+            <StreamingProviders payload={movie['watch/providers']} region={region} onRegion={onRegion} />
+
+            {cast.length ? <CastStrip cast={cast} seeAllTo={`/movie/${movie.id}/credits`} /> : null}
+            <CrewHighlights crew={crew} />
+
+            {movie.reviews?.results?.length ? <Reviews items={movie.reviews.results} /> : null}
+
+            <MoreLikeThis type="movie" id={movie.id} title={movie.title} />
+          </div>
+
+          <aside className="col-side">
+            <SideCard
+              poster={movie.poster_path}
+              title={movie.title}
+              year={year(movie.release_date)}
+              runtimeLabel={movie.runtime ? runtime(movie.runtime) : null}
+              score={movie.vote_average}
+              votes={movie.vote_count}
+              certification={cert}
             />
 
             {companies.length ? (

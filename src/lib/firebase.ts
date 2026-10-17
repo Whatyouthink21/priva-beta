@@ -67,3 +67,30 @@ export function warmFirebase(): void {
   })
 }
 
+/* ------------------------------------------------------------------ *
+ * Session hint.
+ *
+ * The SDK is ~200 kB gzipped and a first visit needs none of it. A tiny flag
+ * in localStorage tells us whether this browser has ever signed in: if it
+ * has, we fetch the SDK straight away so the session is restored; if it has
+ * not, we wait until the visitor actually asks for their account.
+ * ------------------------------------------------------------------ */
+const SESSION_KEY = 'priva.session'
+
+export function hadSession(): boolean {
+  try {
+    return localStorage.getItem(SESSION_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function rememberSession(on: boolean): void {
+  try {
+    if (on) localStorage.setItem(SESSION_KEY, '1')
+    else localStorage.removeItem(SESSION_KEY)
+  } catch {
+    /* private mode — the hint is only an optimisation */
+  }
+}
+
