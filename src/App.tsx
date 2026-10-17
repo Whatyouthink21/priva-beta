@@ -101,12 +101,12 @@ function useApplyPrefs() {
 function useStickyHeader() {
   useEffect(() => {
     let raf = 0
+    const head = document.querySelector<HTMLElement>('.site-head')
+    if (!head) return
     const onScroll = () => {
       if (raf) return
       raf = requestAnimationFrame(() => {
         raf = 0
-        const head = document.querySelector<HTMLElement>('.site-head')
-        if (!head) return
         head.classList.toggle('is-stuck', window.scrollY > 12)
         document.documentElement.style.setProperty('--scrolled', String(Math.min(1, window.scrollY / 420)))
       })
@@ -132,9 +132,7 @@ function useGlobalKeys() {
       const typing = !!target?.closest('input, textarea, select, [contenteditable="true"], iframe')
       if (e.key === '/' && !typing) {
         e.preventDefault()
-        const box = document.querySelector<HTMLInputElement>('#global-search')
-        if (box) box.focus()
-        else window.location.assign('/search')
+        navigate('/search')
         return
       }
       if (typing || location.pathname.startsWith('/watch')) return
@@ -161,10 +159,20 @@ function BackToTop() {
       btn.onclick = () => window.scrollTo({ top: 0, behavior: 'smooth' })
       document.body.appendChild(btn)
     }
-    const onScroll = () => btn!.classList.toggle('is-on', window.scrollY > 1200)
+    let raf = 0
+    const onScroll = () => {
+      if (raf) return
+      raf = requestAnimationFrame(() => {
+        raf = 0
+        btn!.classList.toggle('is-on', window.scrollY > 1200)
+      })
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
     onScroll()
-    return () => window.removeEventListener('scroll', onScroll)
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [])
   return null
 }

@@ -16,6 +16,11 @@ const MAX_BYTES = 1_400_000
 
 const HOUR = 3_600_000
 
+/* how much of the quota the cache is using right now. Kept in memory so a
+ * write does not have to walk the whole of localStorage every time. */
+let bytes = 0
+let sized = false
+
 export function cacheGet<T>(key: string): { value: T; stale: boolean } | null {
   const hit = MEM.get(key) ?? read(key)
   if (!hit) return null
@@ -27,8 +32,12 @@ export function cacheSet(key: string, value: unknown, ttlMs = HOUR): void {
   const entry: Entry = { v: value, e: Date.now() + ttlMs }
   MEM.set(key, entry)
   try {
-    localStorage.setItem(PREFIX + key, JSON.stringify(entry))
-    pruneIfNeeded()
+    const raw = JSON.stringify(entry)
+    const old = localStorage.getItem(PREFIX + key)
+    if (old !== null) bytes -= old.length + key.length
+    localStorage.setItem(PREFIX + key, raw)
+    bytes += raw.length + key.length
+    if (bytes > MAX_BYTES) pruneIfNeeded()
   } catch {
     // Quota blown — drop half the cache and move on. Not worth failing a page.
     try {
@@ -51,6 +60,8 @@ export function cacheClear(): number {
       }
     }
     MEM.clear()
+    bytes = 0
+    sized = true
   } catch {
     /* ignore */
   }
@@ -82,22 +93,34 @@ function read(key: string): Entry | null {
 }
 
 function pruneIfNeeded(): void {
-  let total = 0
+  let total = bytes
   const keys: string[] = []
-  for (const k of Object.keys(localStorage)) {
-    if (!k.startsWith(PREFIX)) continue
-    keys.push(k)
-    total += k.length + (localStorage.getItem(k)?.length ?? 0)
+  if (!sized) {
+    // first run in this session: measure what is already on the device
+    total = 0
+    for (const k of Object.keys(localStorage)) {
+      if (!k.startsWith(PREFIX)) continue
+      keys.push(k)
+      total += k.length + (localStorage.getItem(k)?.length ?? 0)
+    }
+    bytes = total
+    sized = true
   }
   if (total < MAX_BYTES) return
+  const all = keys.length ? keys : Object.keys(localStorage).filter((k) => k.startsWith(PREFIX))
   // Oldest-expiry first: the least likely to be useful again.
-  keys.sort((a, b) => {
+  all.sort((a, b) => {
     const ea = safeExp(a)
     const eb = safeExp(b)
     return ea - eb
   })
-  const dropCount = Math.ceil(keys.length * 0.4)
-  for (let i = 0; i < dropCount; i++) localStorage.removeItem(keys[i])
+  const dropCount = Math.ceil(all.length * 0.4)
+  for (let i = 0; i < dropCount; i++) {
+    const raw = localStorage.getItem(all[i])
+    localStorage.removeItem(all[i])
+    bytes -= (raw?.length ?? 0) + all[i].length
+  }
+  if (bytes < 0) bytes = 0
 }
 
 function safeExp(fullKey: string): number {
@@ -111,4 +134,6 @@ function safeExp(fullKey: string): number {
 function wipe(): void {
   for (const k of Object.keys(localStorage)) if (k.startsWith(PREFIX)) localStorage.removeItem(k)
   MEM.clear()
+  bytes = 0
+  sized = true
 }

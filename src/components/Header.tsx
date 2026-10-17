@@ -1,25 +1,37 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { APP_VERSION, NAV } from '../lib/constants'
 import { cn } from '../lib/utils'
 import { useStore } from '../hooks/useStore'
 import { useAuth } from '../contexts/AuthProvider'
 import { setPrefs } from '../lib/store'
-import { IcBookmark, IcExternal, IcGrid, IcLogout, IcMoon, IcSearch, IcSettings, IcSun, IcUser } from './icons'
+import { IcBookmark, IcExternal, IcGrid, IcLogout, IcMoon, IcSettings, IcSun, IcUser } from './icons'
 
 export function Header() {
-  const { pathname, search } = useLocation()
-  const [term, setTerm] = useState(() => new URLSearchParams(search).get('q') ?? '')
   const [menu, setMenu] = useState(false)
+  const [checking, setChecking] = useState(false)
   const navigate = useNavigate()
   const { prefs, sync, data } = useStore()
-  const { user, signOutNow } = useAuth()
+  const { user, ensureAuth, signOutNow } = useAuth()
   const menuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (pathname.startsWith('/search')) return
-    setTerm(new URLSearchParams(search).get('q') ?? '')
-  }, [pathname, search])
+  /* the account button is the only thing that needs the Firebase SDK, so it
+   * is also the only thing that fetches it — an anonymous visitor never
+   * downloads ~200 kB of auth code they will not use. */
+  const openAccount = useCallback(async () => {
+    if (user) {
+      setMenu((m) => !m)
+      return
+    }
+    setChecking(true)
+    try {
+      const who = await ensureAuth()
+      if (who) setMenu(true)
+      else navigate('/sign-in')
+    } finally {
+      setChecking(false)
+    }
+  }, [user, ensureAuth, navigate])
 
   useEffect(() => {
     if (!menu) return
@@ -60,26 +72,6 @@ export function Header() {
         </nav>
 
         <div className="head-tools">
-          <form
-            className="searchbox"
-            role="search"
-            onSubmit={(e) => {
-              e.preventDefault()
-              navigate(term.trim() ? `/search?q=${encodeURIComponent(term.trim())}` : '/search')
-            }}
-          >
-            <IcSearch size={15} style={{ color: 'var(--color-dim)' }} />
-            <input
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              placeholder="Search films, shows, people…"
-              aria-label="Search Priva"
-              enterKeyHint="search"
-              id="global-search"
-            />
-            <kbd style={{ visibility: term ? 'hidden' : undefined }}>/</kbd>
-          </form>
-
           <button
             className="icon-btn icon-btn--quiet"
             onClick={() => setPrefs({ theme: prefs.theme === 'night' ? 'paper' : 'night' })}
@@ -92,9 +84,10 @@ export function Header() {
           <div style={{ position: 'relative' }} ref={menuRef}>
             <button
               className={cn('icon-btn', menu && 'is-on')}
-              onClick={() => (user ? setMenu((m) => !m) : navigate('/sign-in'))}
+              onClick={() => void openAccount()}
               aria-label={user ? 'Account menu' : 'Sign in'}
               aria-expanded={menu}
+              aria-busy={checking}
             >
               {user ? (
                 <span className="avatar" style={{ width: 28, height: 28, borderRadius: 9, fontSize: 11 }}>

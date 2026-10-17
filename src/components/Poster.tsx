@@ -36,8 +36,7 @@ export function Poster({ path, size = 'w500', alt = '', className, eager = false
       alt={alt}
       className={className}
       loading={eager ? 'eager' : 'lazy'}
-      // @ts-expect-error fetchpriority is not in the React 19 types yet
-      fetchpriority={eager ? 'high' : undefined}
+      fetchPriority={eager ? 'high' : undefined}
       decoding="async"
       style={contain ? { objectFit: 'contain' } : undefined}
       data-loaded={loaded ? 'true' : 'false'}

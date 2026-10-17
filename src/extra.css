@@ -100,6 +100,13 @@
   .hero--detail {
     min-height: clamp(420px, 68svh, 620px);
   }
+  /* on a phone the hero should hand the screen back quickly — the episode
+   * picker has to be reachable without a long scroll */
+  @media (max-width: 699px) {
+    .hero--detail {
+      min-height: clamp(340px, 52svh, 460px);
+    }
+  }
   .sound-toggle {
     position: absolute;
     right: 14px;
@@ -596,6 +603,99 @@
   }
 
   /* browse / search -------------------------------------------------- */
+  .search-page {
+    padding-top: 10px;
+  }
+  .search-page__head {
+    max-width: 62ch;
+    margin-bottom: 18px;
+  }
+  .search-page__title {
+    font-size: clamp(1.7rem, 4.2vw, 2.6rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin-top: 6px;
+  }
+  .search-page__title em {
+    font-style: normal;
+    color: var(--color-flare);
+  }
+  .search-page__lead {
+    margin-top: 8px;
+    color: var(--color-mute);
+    font-size: 14.5px;
+  }
+  .search-panel {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+    border: 1px solid var(--color-line);
+    background: linear-gradient(150deg, color-mix(in oklab, var(--color-flare) 7%, var(--color-panel)), var(--color-panel) 55%);
+    box-shadow: var(--card-shadow);
+  }
+  .search-scopes {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .search-scopes button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 34px;
+    padding: 0 13px;
+    border-radius: 10px;
+    border: 1px solid var(--color-line);
+    background: var(--tint);
+    color: var(--color-mute);
+    font-size: 13px;
+    font-weight: 600;
+    transition: color 0.18s, background 0.18s, border-color 0.18s;
+  }
+  .search-scopes button:hover {
+    color: var(--color-bone);
+    border-color: var(--color-line2);
+  }
+  .search-scopes button[aria-selected='true'] {
+    color: #180902;
+    background: var(--color-flare);
+    border-color: var(--color-flare);
+  }
+  :root[data-theme='paper'] .search-scopes button[aria-selected='true'] {
+    color: #fff;
+  }
+  .search-scopes button svg {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    opacity: 0.85;
+  }
+  .search-recent {
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .search-summary {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 20px 0 14px;
+  }
+  .search-summary b {
+    color: var(--color-bone);
+  }
+  .search-band {
+    margin-bottom: 18px;
+  }
+  .search-idle {
+    display: grid;
+    gap: 16px;
+    margin-top: 20px;
+  }
   .browse-bar {
     display: flex;
     gap: 10px;
@@ -644,11 +744,14 @@
     align-items: center;
     gap: 12px;
     padding: 0 16px;
-    height: 56px;
-    border-radius: 16px;
+    height: 58px;
+    border-radius: 14px;
     border: 1px solid var(--color-line2);
     background: var(--color-panel);
-    box-shadow: var(--card-shadow);
+    box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--color-flare) 8%, transparent);
+  }
+  .search-hero:focus-within {
+    border-color: color-mix(in oklab, var(--color-flare) 55%, transparent);
   }
   .search-hero input {
     flex: 1;

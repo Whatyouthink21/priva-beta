@@ -1,11 +1,13 @@
-import { memo } from 'react'
+import { memo, useCallback, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '../lib/utils'
 import { cardHref, normalize, type CardLike } from '../lib/card'
 import { Poster } from './Poster'
 import { SmartLink } from './SmartLink'
 import { IcBookmark, IcBookmarkFilled, IcLayers, IcPlay } from './icons'
-import { useStore } from '../hooks/useStore'
-import { inMyList, progressKey, toggleMyList } from '../lib/store'
+import { shallowEqual, useStoreSelector } from '../hooks/useStore'
+import { progressKey, toggleMyList } from '../lib/store'
+import type { Snapshot } from '../lib/store'
 import { useToast } from '../contexts/ToastProvider'
 import { usePicker } from '../contexts/PickerProvider'
 
@@ -25,20 +27,38 @@ interface Props {
 /** The poster tile used in every rail and grid on the site. */
 export const MediaCard = memo(function MediaCard({ item, index, ranked, progress = true, compact }: Props) {
   const meta = normalize(item)
-  const { data } = useStore()
   const toast = useToast()
   const picker = usePicker()
-  const watch = data.progress[progressKey(meta.type, meta.id)]
-  const saved = inMyList(meta.id)
+  const navigate = useNavigate()
+  const { watch, saved } = useStoreSelector(
+    useCallback(
+      (s: Snapshot) => ({
+        watch: s.data.progress[progressKey(meta.type, meta.id)],
+        saved: s.data.myList.includes(meta.id),
+      }),
+      [meta.type, meta.id],
+    ),
+    shallowEqual,
+  )
   const pct = watch && watch.progress > 1 && watch.progress < 93 ? Math.round(watch.progress) : 0
+  /* the wide still is only ever seen on hover, so it is not fetched until
+   * then — a rail of twenty cards used to pull twenty extra images */
+  const backdrop = item.backdrop_path ?? meta.backdrop
+  const [peek, setPeek] = useState(false)
+  const [peekReady, setPeekReady] = useState(false)
 
   const card = (
-    <article className="card">
+    <article
+      className="card"
+      data-peek={peekReady ? 'ready' : undefined}
+      onMouseEnter={() => setPeek(true)}
+      onMouseLeave={() => setPeek(false)}
+      onFocus={() => setPeek(true)}
+      onBlur={() => setPeek(false)}
+    >
       <div className="card__media">
         <Poster path={item.poster_path ?? meta.poster} size="w342" alt={meta.title} eager={index !== undefined && index < 3} />
-        {item.backdrop_path || meta.backdrop ? (
-          <Poster path={item.backdrop_path ?? meta.backdrop} size="w780" alt="" />
-        ) : null}
+        {backdrop && peek ? <Poster path={backdrop} size="w780" alt="" onLoad={() => setPeekReady(true)} /> : null}
 
         <div className="card__flag">
           {meta.year && meta.year >= THIS_YEAR - 1 ? <span className="badge badge--flare">new</span> : null}
@@ -65,9 +85,18 @@ export const MediaCard = memo(function MediaCard({ item, index, ranked, progress
             {[meta.year, meta.type === 'tv' ? 'series' : 'film'].filter(Boolean).join(' · ')}
           </div>
           <div className="card__actions">
-            <SmartLink className="icon-btn" to={cardHref(meta.type, meta.id, meta.title) + '?start=play'} aria-label={`Play ${meta.title}`} tabIndex={-1}>
+            <button
+              className="icon-btn"
+              aria-label={`Play ${meta.title}`}
+              tabIndex={-1}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                navigate(cardHref(meta.type, meta.id, meta.title) + '?start=play')
+              }}
+            >
               <IcPlay />
-            </SmartLink>
+            </button>
             <button
               className={cn('icon-btn', saved && 'is-on')}
               aria-label={saved ? 'Remove from My List' : 'Save to My List'}
@@ -119,25 +148,21 @@ export const MediaCard = memo(function MediaCard({ item, index, ranked, progress
           </div>
         </div>
       ) : null}
+
+      {/* the one link of the card, stretched over the whole tile — a link
+       * inside a link is invalid HTML and breaks the click target */}
+      <SmartLink className="card__link" to={cardHref(meta.type, meta.id, meta.title)} aria-label={meta.title} />
     </article>
   )
 
-  if (!ranked) {
-    return (
-      <SmartLink to={cardHref(meta.type, meta.id, meta.title)} aria-label={meta.title} style={{ display: 'block' }}>
-        {card}
-      </SmartLink>
-    )
-  }
+  if (!ranked) return card
 
   return (
     <div className="rank">
       <span className="rank__num num" aria-hidden="true">
         {(index ?? 0) + 1}
       </span>
-      <SmartLink to={cardHref(meta.type, meta.id, meta.title)} aria-label={meta.title} style={{ display: 'block' }}>
-        {card}
-      </SmartLink>
+      {card}
     </div>
   )
 })

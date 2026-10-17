@@ -76,9 +76,43 @@
       gap: 40px;
       align-items: start;
     }
-    .two-col--sticky > aside {
+  }
+  /* both columns refuse to grow past their track, so nothing from the story
+     column can ever slide under the sidebar */
+  .two-col > * {
+    min-width: 0;
+  }
+  .col-main {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+    overflow-x: clip;
+  }
+  .col-side {
+    display: grid;
+    gap: 16px;
+    min-width: 0;
+    align-content: start;
+    position: relative;
+    z-index: 1;
+  }
+  @media (min-width: 1000px) {
+    .col-side {
       position: sticky;
-      top: 88px;
+      top: 78px;
+    }
+  }
+  /* on small screens the sidebar dissolves into the page flow so the poster
+     can lead and the rest follows the story column */
+  @media (max-width: 999px) {
+    .col-side {
+      display: contents;
+    }
+    .col-side > * {
+      order: 2;
+    }
+    .col-side > .side-card {
+      order: -1;
     }
   }
 
@@ -379,6 +413,8 @@
     background: linear-gradient(180deg, transparent, var(--color-ink2));
     padding-block: 40px 26px;
     margin-top: 40px;
+    content-visibility: auto;
+    contain-intrinsic-size: auto 320px;
   }
   .site-foot__grid {
     display: grid;
