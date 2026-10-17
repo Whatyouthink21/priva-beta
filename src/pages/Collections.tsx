@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useStore } from '../hooks/useStore'
 import { createCollection, deleteCollection, moveCollectionItem, removeFromCollection, toggleInCollection, updateCollection } from '../lib/store'
 import { COLLECTION_ACCENTS } from '../lib/constants'
-import { ago, cn, img, year } from '../lib/utils'
+import { ago, cn, img, plural, year } from '../lib/utils'
 import { MediaCard } from '../components/MediaCard'
 import { Modal } from '../components/Modal'
 import { ErrorNote, PageHead } from '../components/Bits'
@@ -181,7 +181,7 @@ function CollectionCard({ collection }: { collection: Collection }) {
         open={confirm}
         onClose={() => setConfirm(false)}
         title={`Delete “${collection.name}”?`}
-        subtitle={`${collection.items.length} titles will be unlinked. Nothing is deleted from TMDB or your My List.`}
+        subtitle={`${plural(collection.items.length, 'title')} will be unlinked. Nothing is deleted from TMDB or your My List.`}
         footer={
           <>
             <button className="btn btn--outline" onClick={() => setConfirm(false)}>
@@ -272,7 +272,7 @@ function One({ collection }: { collection: Collection }) {
           </div>
         </div>
       ) : (
-        <PageHead kicker={`${collection.items.length} titles · made ${ago(collection.createdAt)}`} title={collection.name} lead={collection.description || undefined}>
+        <PageHead kicker={`${plural(collection.items.length, 'title')} · made ${ago(collection.createdAt)}`} title={collection.name} lead={collection.description || undefined}>
           <button className="btn btn--sm btn--outline" onClick={() => setEditing(true)}>
             <IcPencil size={14} /> Edit
           </button>

@@ -96,6 +96,7 @@ export function pct(n: number): number {
   return clamp(Math.round(n), 0, 100)
 }
 
+/** "1 film", "2 films" — the small thing that makes a count read as written. */
 export function plural(n: number, one: string, many = one + 's'): string {
   return `${n} ${n === 1 ? one : many}`
 }

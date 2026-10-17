@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useStore } from '../hooks/useStore'
 import { clearAllProgress, removeFromMyList, toggleMyList } from '../lib/store'
 import { continueWatching, myListItems, statsFor } from '../lib/derive'
-import { ago, cn } from '../lib/utils'
+import { ago, cn, plural } from '../lib/utils'
 import { MediaCard } from '../components/MediaCard'
 import { WideCard } from '../components/WideCard'
 import { PageHead } from '../components/Bits'
@@ -80,7 +80,13 @@ export default function MyPriva() {
       <div className="stats-row">
         <Stat label="Saved" value={data.myList.length} note={data.myList.length ? 'in the order you added them' : 'nothing yet'} icon={<IcBookmark size={15} />} />
         <Stat label="In progress" value={watching.length} note={watching.length ? 'pick them up below' : 'nothing unfinished'} icon={<IcPlay size={15} />} />
-        <Stat label="Watched" value={stats.hours} unit="h" note={`${stats.titles} films · ${stats.series} episodes`} icon={<IcClock size={15} />} />
+        <Stat
+          label="Watched"
+          value={stats.hours || stats.minutesSaved}
+          unit={stats.hours ? 'h' : 'm'}
+          note={stats.titles + stats.series ? `${plural(stats.titles, 'film')} · ${plural(stats.series, 'episode')}` : 'nothing counted yet'}
+          icon={<IcClock size={15} />}
+        />
         <Stat label="Collections" value={data.collections.length} note={data.collections.length ? 'yours' : 'make one'} icon={<IcLayers size={15} />} />
         <Stat label="Streak" value={stats.streakDays} unit="d" note={stats.streakDays > 1 ? 'on a roll' : 'one day at a time'} icon={<IcShuffle size={15} />} />
       </div>

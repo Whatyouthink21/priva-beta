@@ -146,6 +146,11 @@ Nothing here is exotic; it is mostly refusing to do stupid things:
   ~45-line factory over inline SVG paths and the CSS is five hand-written files
   (~14 kB gzipped). Tailwind is only there for utilities.
 - `tsc -b` in the build script, `oxlint` for the react-hooks rules.
+- `npm run qa` mounts all 20 routes in jsdom twice — once with the network off
+  (every page must still render a retry note instead of a white screen) and
+  once against `qa/fixtures.mjs` with a list, a half-watched film and a
+  collection in localStorage. It is a smoke test, not coverage; it exists
+  because "it compiles" is not the same as "it mounts".
 
 Measured on a Moto G-class phone over 4G the first contentful paint lands under
 about a second, which is the number I actually care about.

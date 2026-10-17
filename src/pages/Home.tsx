@@ -13,7 +13,7 @@ import * as api from '../lib/tmdb'
 import { cardHref } from '../lib/card'
 import { continueWatching, recentSeeds } from '../lib/derive'
 import { REGIONS, genreName } from '../lib/constants'
-import { cn } from '../lib/utils'
+import { cn, plural } from '../lib/utils'
 import type { CSSProperties } from 'react'
 import { toggleMyList, inMyList } from '../lib/store'
 import { useToast } from '../contexts/ToastProvider'
@@ -493,7 +493,7 @@ function RegionNote({ region, count }: { region: string; count: number }) {
       <div>
         <h3>Priva, configured</h3>
         <p>
-          Region <b>{region}</b> for what is legal to stream and when things are released, {count ? `${count} titles in your list` : 'nothing saved yet'}
+          Region <b>{region}</b> for what is legal to stream and when things are released, {count ? `${plural(count, 'title')} in your list` : 'nothing saved yet'}
           , and your default player comes from the Settings page. Everything here is one switch away.
         </p>
       </div>

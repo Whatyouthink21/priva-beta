@@ -27,3 +27,6 @@ coverage/
 firebase-debug.log
 firestore-debug.log
 serviceAccount*.json
+
+# throwaway smoke-test build output
+qa/out/
