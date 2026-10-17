@@ -8,6 +8,7 @@ import { Footer, TabBar } from './components/Footer'
 import { RouteSkeleton } from './components/RouteSkeleton'
 import { routes } from './routes'
 import { useStore } from './hooks/useStore'
+import { DEFAULT_PREFS } from './lib/constants'
 
 /* lazy per route: /watch never pays for the settings form, the settings page
  * never pays for the hero, and the first paint only ships what it needs. */
@@ -76,7 +77,20 @@ function useApplyPrefs() {
     const root = document.documentElement
     root.dataset.theme = prefs.theme
     root.dataset.motion = prefs.reduceMotion ? 'off' : 'on'
-    root.style.setProperty('--player-color', `#${prefs.accent.replace('#', '')}`)
+    /* the accent picker: an inline custom property beats both theme blocks, so
+     * picking a colour pins it for Night *and* Paper — while leaving it at the
+     * default lets the two themes keep their own slightly different flare. */
+    const accent = prefs.accent.replace('#', '').trim()
+    if (accent && accent.toUpperCase() !== DEFAULT_PREFS.accent.toUpperCase()) {
+      const hex = `#${accent}`
+      root.style.setProperty('--color-flare', hex)
+      root.style.setProperty('--color-flare2', `color-mix(in oklab, ${hex} 66%, white)`)
+      root.style.setProperty('--player-color', hex)
+    } else {
+      root.style.removeProperty('--color-flare')
+      root.style.removeProperty('--color-flare2')
+      root.style.setProperty('--player-color', prefs.theme === 'paper' ? '#d83c07' : '#ff4f18')
+    }
     root.style.setProperty('--card-gap', prefs.posterSize === 'compact' ? '10px' : prefs.posterSize === 'large' ? '20px' : '14px')
     root.style.setProperty('--grid-min', prefs.posterSize === 'compact' ? '124px' : prefs.posterSize === 'large' ? '208px' : '168px')
     const meta = document.querySelector('meta[name=theme-color]')
@@ -178,8 +192,8 @@ const router = createBrowserRouter([
       { path: '/settings', element: <Settings /> },
       { path: '/sign-in', element: <Auth /> },
       { path: '/sign-up', element: <Auth mode="signup" /> },
-      { path: '/watch/movie/:id', element: <Watch /> },
-      { path: '/watch/tv/:id/:season/:episode', element: <Watch /> },
+      { path: '/watch/:type/:id', element: <Watch /> },
+      { path: '/watch/:type/:id/:season/:episode', element: <Watch /> },
       { path: '*', element: <NotFound /> },
     ],
   },

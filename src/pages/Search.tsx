@@ -27,13 +27,11 @@ export default function Search() {
   const [term, setTerm] = useState(committed)
   const { data } = useStore()
   const inputRef = useRef<HTMLInputElement>(null)
-  const committedRef = useRef(committed)
-  committedRef.current = committed
 
   // type → wait → run. Only real searches get written to the URL, so the
   // back button walks the queries and a link to /search?q=… just works.
   useEffect(() => {
-    if (term === committedRef.current) return
+    if (term === committed) return
     const t = setTimeout(() => {
       const trimmed = term.trim()
       const next = new URLSearchParams(params)
@@ -43,7 +41,7 @@ export default function Search() {
       if (trimmed.length > 2) rememberSearch(trimmed)
     }, 420)
     return () => clearTimeout(t)
-  }, [term, params, setParams])
+  }, [term, committed, params, setParams])
 
   useEffect(() => {
     setTerm(committed)

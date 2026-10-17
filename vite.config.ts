@@ -30,7 +30,11 @@ export default defineConfig({
     host: true,
     port: 5173,
     strictPort: false,
+    // Sandboxes and tunnelled previews reach this dev server on a host Vite
+    // would otherwise 403 (".. is not allowed"). Dot-prefixed entries match
+    // subdomains. Dev-only: `vite build` never reads this.
+    allowedHosts: ['.e2b.app', '.preview.app', '.loca.lt', '.trycloudflare.com', '.ngrok-free.app'],
   },
-  preview: { host: true, port: 4173 },
+  preview: { host: true, port: 4173, allowedHosts: ['.e2b.app'] },
   appType: 'spa',
 })

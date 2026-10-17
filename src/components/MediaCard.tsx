@@ -9,6 +9,9 @@ import { inMyList, progressKey, toggleMyList } from '../lib/store'
 import { useToast } from '../contexts/ToastProvider'
 import { usePicker } from '../contexts/PickerProvider'
 
+/** computed once: a card must not re-decide what year it is on every render */
+const THIS_YEAR = new Date().getFullYear()
+
 interface Props {
   item: CardLike
   index?: number
@@ -38,7 +41,7 @@ export const MediaCard = memo(function MediaCard({ item, index, ranked, progress
         ) : null}
 
         <div className="card__flag">
-          {meta.year && meta.year >= new Date().getFullYear() - 1 ? <span className="badge badge--flare">new</span> : null}
+          {meta.year && meta.year >= THIS_YEAR - 1 ? <span className="badge badge--flare">new</span> : null}
           {item.adult ? <span className="badge">18+</span> : null}
           {!compact && watch ? (
             <span className="badge" title={`Watched ${Math.round(watch.progress)}%`}>

@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Priva — a quiet place to stream movies and TV. Metadata by TMDB, playback by Vidstick and TGVID.",
+  "description": "Priva — a quiet place to stream movies and TV. Metadata by TMDB, playback by Vidstuck and TGVID.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -1,19 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import {
-  GoogleAuthProvider,
-  createUserWithEmailAndPassword,
-  deleteUser,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-  type User,
-} from 'firebase/auth'
-import { getFirebaseAuth } from '../lib/firebase'
+import { firebaseImpl } from '../lib/firebase'
 import { touchDevice, wipeCloud, writeProfile } from '../lib/firestore'
-import { bindCloud, unbindCloud } from '../lib/store'
+import { bindCloud, getSnapshot, unbindCloud } from '../lib/store'
+import type { User } from 'firebase/auth'
+
+/* Every action below goes through firebaseImpl(): the SDK is a lazy chunk, so
+ * a click has to wait for it the first time and gets it from memory after. */
+type Sdk = NonNullable<Awaited<ReturnType<typeof firebaseImpl>>>
+const OFFLINE = 'Firebase is not configured in this build, so accounts are disabled. Priva still keeps your list on this device.'
+
+async function sdk(): Promise<Sdk> {
+  const impl = await firebaseImpl()
+  if (!impl) throw new Error(OFFLINE)
+  return impl
+}
 
 interface AuthApi {
   user: User | null
@@ -40,42 +40,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const auth = getFirebaseAuth()
-    if (!auth) {
-      setReady(true)
-      return
+    let stop: (() => void) | undefined
+    let gone = false
+    void firebaseImpl().then((impl) => {
+      if (!impl) {
+        if (!gone) setReady(true)
+        return
+      }
+      stop = impl.watchAuth(
+        (next) => {
+          if (gone) return
+          setUser(next)
+          setReady(true)
+          if (next) {
+            void bindCloud({ kind: 'user', uid: next.uid, email: next.email })
+            // one doc per browser, so Settings can list and name the devices
+            void touchDevice(next.uid, getSnapshot().deviceId)
+            void writeProfile(next.uid, { displayName: next.displayName, email: next.email, photoURL: next.photoURL })
+          } else {
+            unbindCloud()
+          }
+        },
+        () => {
+          if (!gone) setReady(true)
+        },
+      )
+    })
+    return () => {
+      gone = true
+      stop?.()
     }
-    const off = onAuthStateChanged(
-      auth,
-      async (next) => {
-        setUser(next)
-        setReady(true)
-        if (next) {
-          await bindCloud({ kind: 'user', uid: next.uid, email: next.email })
-          void touchDevice(next.uid, navigator.userAgent.slice(0, 40))
-          void writeProfile(next.uid, { displayName: next.displayName, email: next.email, photoURL: next.photoURL })
-        } else {
-          unbindCloud()
-        }
-      },
-      () => setReady(true),
-    )
-    return off
   }, [])
 
   const signInEmail = useCallback(async (email: string, password: string) => {
-    const auth = getFirebaseAuth()
-    if (!auth) throw new Error(FIREBASE_OFFLINE)
-    await signInWithEmailAndPassword(auth, email.trim(), password)
+    const impl = await sdk()
+    await impl.actions.signIn(email.trim(), password)
   }, [])
 
   const signUpEmail = useCallback(async (name: string, email: string, password: string) => {
-    const auth = getFirebaseAuth()
-    if (!auth) throw new Error(FIREBASE_OFFLINE)
-    const cred = await createUserWithEmailAndPassword(auth, email.trim(), password)
+    const impl = await sdk()
+    const cred = await impl.actions.signUp(email.trim(), password)
     const display = name.trim() || (email.split('@')[0] ?? 'watcher')
     try {
-      await updateProfile(cred.user, { displayName: display })
+      await impl.actions.rename(display)
     } catch {
       /* cosmetic only */
     }
@@ -83,39 +90,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInGoogle = useCallback(async () => {
-    const auth = getFirebaseAuth()
-    if (!auth) throw new Error(FIREBASE_OFFLINE)
-    const provider = new GoogleAuthProvider()
-    provider.setCustomParameters({ prompt: 'select_account' })
-    await signInWithPopup(auth, provider)
+    const impl = await sdk()
+    await impl.actions.google()
   }, [])
 
   const signOutNow = useCallback(async () => {
-    const auth = getFirebaseAuth()
-    if (!auth) return
-    await signOut(auth)
+    const impl = await firebaseImpl()
+    if (!impl) return
+    await impl.actions.signOut()
   }, [])
 
   const resetPassword = useCallback(async (email: string) => {
-    const auth = getFirebaseAuth()
-    if (!auth) throw new Error(FIREBASE_OFFLINE)
-    await sendPasswordResetEmail(auth, email.trim())
+    const impl = await sdk()
+    await impl.actions.reset(email.trim())
   }, [])
 
   const changeDisplayName = useCallback(async (name: string) => {
-    const auth = getFirebaseAuth()
-    if (!auth?.currentUser) return
-    await updateProfile(auth.currentUser, { displayName: name.trim() })
-    await writeProfile(auth.currentUser.uid, { displayName: name.trim() })
-    setUser({ ...auth.currentUser })
+    const impl = await firebaseImpl()
+    const current = impl?.actions.currentUser()
+    if (!impl || !current) return
+    await impl.actions.rename(name.trim())
+    await writeProfile(current.uid, { displayName: name.trim() })
+    setUser({ ...current })
   }, [])
 
   const removeAccount = useCallback(async () => {
-    const auth = getFirebaseAuth()
-    const current = auth?.currentUser
-    if (!auth || !current) return
+    const impl = await sdk()
+    const current = impl.actions.currentUser()
+    if (!current) return
     await wipeCloud(current.uid)
-    await deleteUser(current)
+    await impl.actions.remove()
   }, [])
 
   const value = useMemo<AuthApi>(
@@ -125,9 +129,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
-
-const FIREBASE_OFFLINE =
-  'Firebase is not configured in this build, so accounts are disabled. Priva still keeps your list on this device.'
 
 /** Turns Firebase's machine codes into something a person can act on. */
 export function authMessage(err: unknown): string {

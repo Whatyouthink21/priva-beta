@@ -1,0 +1,29 @@
+# build output
+dist/
+dist-ssr/
+*.local
+
+# deps
+node_modules/
+
+# editor / os noise
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.njsproj
+*.sln
+
+# tooling caches
+.turbo/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# firebase (deploy credentials stay local)
+.firebase/
+firebase-debug.log
+firestore-debug.log
+serviceAccount*.json

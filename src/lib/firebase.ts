@@ -1,12 +1,15 @@
-import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app'
-import {
-  browserLocalPersistence,
-  getAuth,
-  setPersistence,
-  type Auth,
-  type User,
-} from 'firebase/auth'
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from 'firebase/firestore'
+/* ------------------------------------------------------------------ *
+ * Firebase, kept off the critical path.
+ *
+ * The SDK is the single heaviest thing this site ships (~200 kB after
+ * gzip) and only three things need it: signing in, pushing your list to
+ * the cloud and pulling it back. A first visit does none of those, so the
+ * real SDK lives in ./firebaseImpl.ts and is fetched as its own chunk the
+ * first time something asks for it — usually right after first paint.
+ *
+ * Nothing else in the app may import 'firebase/*' directly, or the split
+ * is undone. Type-only imports are fine (they vanish at build time).
+ * ------------------------------------------------------------------ */
 
 /** Straight from the Firebase console for the `priva-movies` project. These
  *  are public client keys — the security rules in Firestore are what actually
@@ -21,62 +24,46 @@ export const firebaseConfig = {
   measurementId: 'G-0T1DQQH4L1',
 }
 
-let app: FirebaseApp | null = null
-let auth: Auth | null = null
-let db: Firestore | null = null
-export let firebaseBroken = false
-
-/** true when every piece of the config actually made it into .env */
+/** true when every piece of the config actually made it in */
 export const firebaseConfigured = Object.values(firebaseConfig).every((v) => typeof v === 'string' && v.length > 4)
 
-function boot() {
-  if (app) return
-  if (!firebaseConfigured) {
-    firebaseBroken = true
-    return
+/** Set when the chunk could not be fetched or the SDK refused to start. The
+ *  UI reads it to explain why the sync dot is grey. */
+let broken = false
+export function isFirebaseBroken(): boolean {
+  return broken
+}
+/** Called from the impl chunk when the SDK refuses to start. */
+export function firebaseBrokenReason(err: unknown): void {
+  broken = true
+  console.warn('[priva] Firebase failed to start — running local-only.', err)
+}
+
+export type FirebaseImpl = typeof import('./sdk')
+
+let pending: Promise<FirebaseImpl | null> | null = null
+
+/** Load (once) the module that holds the SDK. Resolves to null when Firebase
+ *  is not configured or the network refused the chunk — callers must treat
+ *  that as "local only", not as an error. */
+export function firebaseImpl(): Promise<FirebaseImpl | null> {
+  if (!pending) {
+    pending = import('./sdk').catch((err: unknown) => {
+      broken = true
+      console.warn('[priva] the Firebase chunk did not load — staying local-only.', err)
+      return null
+    })
   }
-  try {
-    app = getApps().length ? getApp() : initializeApp(firebaseConfig)
-    auth = getAuth(app)
-    // Offline cache first: Priva is usable on a train, and a reload while
-    // signed out must not blank out My List.
-    try {
-      db = initializeFirestore(app, {
-        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
-      })
-    } catch {
-      db = getFirestore(app)
-    }
-    void setPersistence(auth, browserLocalPersistence).catch(() => undefined)
-  } catch (err) {
-    firebaseBroken = true
-    console.warn('[priva] Firebase failed to start — running local-only.', err)
-  }
+  return pending
 }
 
-export function getFirebaseAuth(): Auth | null {
-  boot()
-  return auth
+/** Kick the SDK off without blocking anything: called once the app has
+ *  painted, so a returning signed-in visitor is synced before they even open
+ *  My Priva while a first-time visitor never waits for the download. */
+export function warmFirebase(): void {
+  if (!firebaseConfigured || typeof window === 'undefined') return
+  void firebaseImpl().then((impl) => {
+    if (impl) void impl.startAnalytics()
+  })
 }
 
-export function getDb(): Firestore | null {
-  boot()
-  return db
-}
-
-export function isSignedIn(user: User | null): boolean {
-  return !!user && !user.isAnonymous
-}
-
-/** Only loaded when the browser supports it, and never during SSR/tests. */
-export async function startAnalytics(): Promise<void> {
-  if (firebaseBroken || typeof window === 'undefined') return
-  try {
-    const { getAnalytics, isSupported } = await import('firebase/analytics')
-    if (!(await isSupported())) return
-    boot()
-    if (app) getAnalytics(app)
-  } catch {
-    /* measurement id blocked or offline — nobody should notice */
-  }
-}
