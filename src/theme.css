@@ -1,0 +1,69 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ *
+ * Priva — design tokens
+ * Two themes only: Night (default) and Paper. Everything below reads
+ * these variables, so the light theme is ~20 lines instead of a fork.
+ * ------------------------------------------------------------------ */
+@theme {
+  --color-ink: #08090c;
+  --color-ink2: #0b0d12;
+  --color-panel: #12151c;
+  --color-panel2: #181c25;
+  --color-raise: #1f242f;
+  --color-line: rgba(242, 240, 234, 0.09);
+  --color-line2: rgba(242, 240, 234, 0.16);
+  --color-bone: #f2f0ea;
+  --color-mute: #a3a8b4;
+  --color-dim: #757b88;
+  --color-flare: #ff4f18;
+  --color-flare2: #ff7a4d;
+  --color-gold: #f0b840;
+  --color-jade: #43d69a;
+  --color-rose: #ff5a76;
+  --font-display: 'Bricolage Grotesque Variable', 'Archivo Variable', ui-sans-serif, sans-serif;
+  --font-sans: 'Archivo Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, monospace;
+  --radius-card: 12px;
+}
+
+:root {
+  color-scheme: dark;
+  --grain: 0.32;
+  --vignette: rgba(0, 0, 0, 0.62);
+  --scrim-bottom: linear-gradient(to top, var(--color-ink) 2%, rgba(8, 9, 12, 0.86) 26%, rgba(8, 9, 12, 0.35) 62%, rgba(8, 9, 12, 0.1) 100%);
+  --scrim-side: linear-gradient(90deg, rgba(8, 9, 12, 0.94) 0%, rgba(8, 9, 12, 0.72) 34%, rgba(8, 9, 12, 0.18) 66%, rgba(8, 9, 12, 0) 100%);
+  --header-bg: rgba(8, 9, 12, 0.72);
+  --card-shadow: 0 22px 44px -26px rgba(0, 0, 0, 0.85);
+  --player-color: #ff4f18;
+  --tint: rgba(255, 255, 255, 0.045);
+  --tint-strong: rgba(255, 255, 255, 0.09);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+:root[data-theme='paper'] {
+  color-scheme: light;
+  --color-ink: #f3f0e9;
+  --color-ink2: #efece4;
+  --color-panel: #fffdf8;
+  --color-panel2: #f8f5ee;
+  --color-raise: #ece8de;
+  --color-line: rgba(26, 24, 20, 0.12);
+  --color-line2: rgba(26, 24, 20, 0.22);
+  --color-bone: #1a1814;
+  --color-mute: #5c5a53;
+  --color-dim: #85827a;
+  --color-flare: #d83c07;
+  --grain: 0.06;
+  --vignette: rgba(120, 108, 90, 0.18);
+  --scrim-bottom: linear-gradient(to top, var(--color-ink) 4%, rgba(243, 240, 233, 0.9) 30%, rgba(243, 240, 233, 0.4) 70%, rgba(243, 240, 233, 0.08) 100%);
+  --scrim-side: linear-gradient(90deg, rgba(243, 240, 233, 0.96) 0%, rgba(243, 240, 233, 0.8) 38%, rgba(243, 240, 233, 0.25) 72%, rgba(243, 240, 233, 0) 100%);
+  --header-bg: rgba(243, 240, 233, 0.8);
+  --card-shadow: 0 18px 34px -24px rgba(60, 48, 30, 0.4);
+  --tint: rgba(26, 24, 20, 0.035);
+  --tint-strong: rgba(26, 24, 20, 0.07);
+}
+
+/* ------------------------------------------------------------------ *
+ * base
+ * ------------------------------------------------------------------ */

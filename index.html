@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Priva — movies and TV, quietly</title>
+    <meta
+      name="description"
+      content="Priva is a free, ad-free way to watch movies and TV shows. Trailers behind every title page, your list and watch progress kept in sync, 4K-ready sources."
+    />
+    <meta name="theme-color" content="#08090c" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Priva" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="preconnect" href="https://api.themoviedb.org" crossorigin />
+    <link rel="preconnect" href="https://image.tmdb.org" crossorigin />
+    <link rel="dns-prefetch" href="https://vidstuck.cc" />
+    <link rel="dns-prefetch" href="https://tgvid.lovable.app" />
+    <link rel="dns-prefetch" href="https://vidvault.to" />
+    <link rel="dns-prefetch" href="https://dl.vidsrc.party" />
+
+    <!-- Decide the theme before first paint so there is no flash of dark
+         (or light) while the bundle is still booting. -->
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('priva.prefs.v1')
+          var theme = raw && JSON.parse(raw).value ? JSON.parse(raw).value.theme : 'night'
+          if (theme !== 'paper' && theme !== 'night') theme = 'night'
+          document.documentElement.dataset.theme = theme
+          document
+            .querySelector('meta[name=theme-color]')
+            .setAttribute('content', theme === 'paper' ? '#f3f0e9' : '#08090c')
+        } catch (e) {
+          document.documentElement.dataset.theme = 'night'
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root">
+      <div class="boot">
+        <span class="boot-mark">Priva</span>
+        <span class="boot-bar"><i></i></span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

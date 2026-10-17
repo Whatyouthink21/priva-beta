@@ -1,0 +1,23 @@
+{
+  "name": "Priva",
+  "short_name": "Priva",
+  "description": "Movies and TV, quietly. Your list, your place, your sources.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#08090c",
+  "theme_color": "#08090c",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Search", "url": "/search", "icons": [] },
+    { "name": "My Priva", "url": "/my", "icons": [] }
+  ]
+}
