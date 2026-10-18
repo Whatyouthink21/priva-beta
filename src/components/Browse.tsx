@@ -220,7 +220,7 @@ export function Browse({ kind }: { kind: MediaType }) {
           ) : null}
 
           <div style={{ marginTop: 16 }}>
-            <ProviderRow value={provider ?? null} region={region} onChange={(id) => patch({ provider: id })} />
+            <ProviderRow value={provider ?? null} region={region} kind={kind} onChange={(id) => patch({ provider: id })} />
           </div>
 
           {error ? (

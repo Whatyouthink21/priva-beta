@@ -259,12 +259,6 @@
     border: 1px solid var(--color-line);
     background: linear-gradient(150deg, color-mix(in oklab, var(--color-flare) 8%, var(--color-panel)), var(--color-panel) 60%);
   }
-  .play-card__sources {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 12px;
-  }
   .play-card__row {
     display: flex;
     gap: 8px;
@@ -521,15 +515,11 @@
   .prov-filter__list .chip {
     flex: none;
   }
-  .prov-dot {
-    width: 17px;
-    height: 17px;
-    border-radius: 5px;
-    display: grid;
-    place-items: center;
-    font-size: 8px;
-    font-weight: 800;
-    font-family: var(--font-display);
+  .prov-filter__logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    flex: none;
   }
   .region-pick {
     display: inline-flex;

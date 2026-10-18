@@ -245,7 +245,7 @@ export default function WatchPage() {
           >
             <IcExpand size={16} />
           </button>
-          <a className="icon-btn icon-btn--quiet" href={src} target="_blank" rel="noreferrer noopener" aria-label="Open the player directly" title="Open the source directly — useful when an embed is blocked">
+          <a className="icon-btn icon-btn--quiet" href={src} target="_blank" rel="noreferrer noopener" aria-label="Open the player directly" title="Open the server directly — useful when an embed is blocked">
             <IcExternal size={15} />
           </a>
           <button
@@ -274,7 +274,7 @@ export default function WatchPage() {
             <div style={{ textAlign: 'center', maxWidth: '34ch' }}>
               <b style={{ fontSize: 14 }}>{sourceName(source)} is waking up</b>
               <p className="hint" style={{ marginTop: 6 }}>
-                Nothing streams? Try the other source in the bar above, or open it directly with the ↗ button. Some browser
+                Nothing streams? Try the other server in the bar above, or open it directly with the ↗ button. Some browser
                 extensions block third-party frames.
               </p>
             </div>
