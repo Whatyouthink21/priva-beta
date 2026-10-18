@@ -61,7 +61,7 @@ export function playerUrl(source: PlayerSource, target: EmbedTarget, o: EmbedOpt
 }
 
 export function sourceName(source: PlayerSource): string {
-  return source === 'tgvid' ? 'TGVID' : 'Vidstuck'
+  return source === 'tgvid' ? 'Server 2' : 'Server 1'
 }
 
 /* ---------------- downloads ---------------- */

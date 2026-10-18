@@ -5,13 +5,13 @@ import { useAsync } from '../hooks/useAsync'
 import { useStore } from '../hooks/useStore'
 import { cn, money, runtime, year } from '../lib/utils'
 import { COUNTRY_NAME, LANGUAGES } from '../lib/constants'
-import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights, SideCard } from '../components/DetailBits'
+import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights } from '../components/DetailBits'
 import { CastStrip, CreditsTable } from '../components/CastCrew'
 import { StreamingProviders } from '../components/Providers'
 import { Downloads } from '../components/Downloads'
 import { ErrorNote, PageHead } from '../components/Bits'
 import { Modal } from '../components/Modal'
-import { IcDownload, IcExternal, IcLink, IcSearch } from '../components/icons'
+import { IcExternal, IcSearch } from '../components/icons'
 import { hasTmdbKey } from '../lib/env'
 import type { MovieDetail as Movie } from '../lib/types'
 
@@ -37,7 +37,6 @@ export default function MoviePage({ mode }: { mode?: 'credits' }) {
 
 function MovieView({ movie, region, onRegion }: { movie: Movie; region: string; onRegion: (r: string) => void }) {
   const [download, setDownload] = useState(false)
-  const [copied, setCopied] = useState(false)
   const meta = api.toMeta({ ...movie, media_type: 'movie' })
   const trailer = useMemo(() => api.pickTrailer(movie.videos), [movie.videos])
   const cast = movie.credits?.cast ?? []
@@ -49,7 +48,6 @@ function MovieView({ movie, region, onRegion }: { movie: Movie; region: string; 
   const editor = crew.find((c) => c.job === 'Editor')
   const cert = movie.release_dates?.results?.find((r) => r.iso_3166_1 === region)?.release_dates?.find((d) => d.certification)?.certification
   const release = movie.release_dates?.results?.find((r) => r.iso_3166_1 === region)?.release_dates?.[0]?.release_date ?? movie.release_date
-  const companies = movie.production_companies ?? []
   const countries = (movie.production_countries ?? []).map((c) => COUNTRY_NAME[c.iso_3166_1] ?? c.iso_3166_1)
   const spoken = (movie.spoken_languages ?? []).map((l) => l.english_name || LANGUAGES.find((x) => x.code === l.iso_639_1)?.name || l.name)
   const profit = movie.budget > 0 && movie.revenue > 0 ? movie.revenue - movie.budget : null
@@ -83,144 +81,76 @@ function MovieView({ movie, region, onRegion }: { movie: Movie; region: string; 
       />
 
       <div className="wrap page">
-        <div className="two-col">
-          <div className="col-main">
-            <PlayCard meta={meta} onDownload={() => setDownload(true)} />
+        <div className="detail-stack">
+          <PlayCard meta={meta} onDownload={() => setDownload(true)} />
 
-            <Facts
-              wide
-              items={[
-                {
-                  label: 'IMDb',
-                  value: movie.imdb_id ? (
-                    <a href={`https://www.imdb.com/title/${movie.imdb_id}/`} target="_blank" rel="noreferrer noopener" className="num">
-                      {movie.imdb_id} <IcExternal size={11} style={{ verticalAlign: -1 }} />
-                    </a>
-                  ) : null,
-                },
-                { label: 'Score', value: movie.vote_average ? `${movie.vote_average.toFixed(1)} / 10 · ${movie.vote_count?.toLocaleString()} votes` : null },
-                { label: 'Released', value: release ? new Date(release).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : year(movie.release_date) },
-                { label: 'Runtime', value: runtime(movie.runtime) },
-                { label: 'Budget', value: money(movie.budget) },
-                {
-                  label: 'Revenue',
-                  value: movie.revenue ? (
-                    <>
-                      {money(movie.revenue)}
-                      {profit !== null ? (
-                        <em style={{ display: 'block', color: profit > 0 ? 'var(--color-jade)' : 'var(--color-rose)' }}>
-                          {profit > 0 ? '+' : '−'}
-                          {money(Math.abs(profit))} vs budget
-                        </em>
-                      ) : null}
-                    </>
-                  ) : null,
-                },
-                { label: 'Country', value: countries.join(', ') },
-                { label: 'Languages', value: spoken.join(', ') },
-                { label: 'Director', value: director?.name },
-                { label: 'Writers', value: writers.map((w) => w.name).join(', ') },
-                { label: 'Cinematography', value: dp?.name },
-                { label: 'Edited by', value: editor?.name },
-                { label: 'Music', value: composer?.name },
-                { label: 'Certification', value: cert },
-                { label: 'Status', value: movie.status },
-              ]}
-            />
+          <Facts
+            wide
+            items={[
+              {
+                label: 'IMDb',
+                value: movie.imdb_id ? (
+                  <a href={`https://www.imdb.com/title/${movie.imdb_id}/`} target="_blank" rel="noreferrer noopener" className="num">
+                    {movie.imdb_id} <IcExternal size={11} style={{ verticalAlign: -1 }} />
+                  </a>
+                ) : null,
+              },
+              { label: 'Score', value: movie.vote_average ? `${movie.vote_average.toFixed(1)} / 10 · ${movie.vote_count?.toLocaleString()} votes` : null },
+              { label: 'Released', value: release ? new Date(release).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : year(movie.release_date) },
+              { label: 'Runtime', value: runtime(movie.runtime) },
+              { label: 'Budget', value: money(movie.budget) },
+              {
+                label: 'Revenue',
+                value: movie.revenue ? (
+                  <>
+                    {money(movie.revenue)}
+                    {profit !== null ? (
+                      <em style={{ display: 'block', color: profit > 0 ? 'var(--color-jade)' : 'var(--color-rose)' }}>
+                        {profit > 0 ? '+' : '−'}
+                        {money(Math.abs(profit))} vs budget
+                      </em>
+                    ) : null}
+                  </>
+                ) : null,
+              },
+              { label: 'Country', value: countries.join(', ') },
+              { label: 'Languages', value: spoken.join(', ') },
+              { label: 'Director', value: director?.name },
+              { label: 'Writers', value: writers.map((w) => w.name).join(', ') },
+              { label: 'Cinematography', value: dp?.name },
+              { label: 'Edited by', value: editor?.name },
+              { label: 'Music', value: composer?.name },
+              { label: 'Certification', value: cert },
+              { label: 'Status', value: movie.status },
+            ]}
+          />
 
-            <section className="panel">
-              <div className="panel__head">
-                <h3>Your take</h3>
-                <div className="grow" />
-                <span className="hint">{movie.status}</span>
+          <section className="panel">
+            <div className="panel__head">
+              <h3>Your take</h3>
+              <div className="grow" />
+              <span className="hint">{movie.status}</span>
+            </div>
+            <RateThis meta={meta} />
+            {movie.keywords?.results?.length ? (
+              <div className="tag-row">
+                {movie.keywords.results.slice(0, 12).map((k) => (
+                  <span className="badge" key={k.id}>
+                    {k.name}
+                  </span>
+                ))}
               </div>
-              <RateThis meta={meta} />
-              {movie.keywords?.results?.length ? (
-                <div className="tag-row">
-                  {movie.keywords.results.slice(0, 12).map((k) => (
-                    <span className="badge" key={k.id}>
-                      {k.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </section>
-
-            <StreamingProviders payload={movie['watch/providers']} region={region} onRegion={onRegion} />
-
-            {cast.length ? <CastStrip cast={cast} seeAllTo={`/movie/${movie.id}/credits`} /> : null}
-            <CrewHighlights crew={crew} />
-
-            {movie.reviews?.results?.length ? <Reviews items={movie.reviews.results} /> : null}
-
-            <MoreLikeThis type="movie" id={movie.id} title={movie.title} />
-          </div>
-
-          <aside className="col-side">
-            <SideCard
-              poster={movie.poster_path}
-              title={movie.title}
-              year={year(movie.release_date)}
-              runtimeLabel={movie.runtime ? runtime(movie.runtime) : null}
-              score={movie.vote_average}
-              votes={movie.vote_count}
-              certification={cert}
-            />
-
-            {companies.length ? (
-              <section className="panel">
-                <div className="panel__head">
-                  <h3>Made by</h3>
-                </div>
-                <div className="tag-row">
-                  {companies.map((c) => (
-                    <span className="pill" key={c.id}>
-                      {c.name}
-                    </span>
-                  ))}
-                </div>
-              </section>
             ) : null}
+          </section>
 
-            {movie.alternative_titles?.results?.length ? (
-              <section className="panel">
-                <div className="panel__head">
-                  <h3>Also known as</h3>
-                </div>
-                <ul className="aka">
-                  {movie.alternative_titles.results.slice(0, 10).map((t, i) => (
-                    <li key={`${t.title}-${i}`}>
-                      {t.title} <span className="hint">{t.iso_3166_1}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+          <StreamingProviders payload={movie['watch/providers']} region={region} onRegion={onRegion} />
 
-            <section className="panel">
-              <div className="panel__head">
-                <h3>Share</h3>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button
-                  className="btn btn--sm btn--outline"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(location.href)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 1800)
-                  }}
-                >
-                  <IcLink size={14} /> {copied ? 'Copied' : 'Copy link'}
-                </button>
-                <a className="btn btn--sm btn--outline" href={`https://www.themoviedb.org/movie/${movie.id}`} target="_blank" rel="noreferrer noopener">
-                  TMDB <IcExternal size={13} />
-                </a>
-                <button className="btn btn--sm btn--outline" onClick={() => setDownload(true)}>
-                  <IcDownload size={14} /> Downloads
-                </button>
-              </div>
-            </section>
-          </aside>
+          {cast.length ? <CastStrip cast={cast} seeAllTo={`/movie/${movie.id}/credits`} /> : null}
+          <CrewHighlights crew={crew} />
+
+          {movie.reviews?.results?.length ? <Reviews items={movie.reviews.results} /> : null}
+
+          <MoreLikeThis type="movie" id={movie.id} title={movie.title} />
         </div>
       </div>
 
@@ -311,15 +241,9 @@ function LoadingMovie() {
         </div>
       </div>
       <div className="wrap page">
-        <div className="two-col">
-          <div style={{ display: 'grid', gap: 16 }}>
-            <div className="skel" style={{ height: 180, borderRadius: 16 }} />
-            <div className="skel" style={{ height: 260, borderRadius: 16 }} />
-          </div>
-          <div style={{ display: 'grid', gap: 16 }}>
-            <div className="skel skel--poster" style={{ maxWidth: 260 }} />
-            <div className="skel" style={{ height: 320, borderRadius: 16 }} />
-          </div>
+        <div className="detail-stack">
+          <div className="skel" style={{ height: 180, borderRadius: 16 }} />
+          <div className="skel" style={{ height: 260, borderRadius: 16 }} />
         </div>
       </div>
     </>

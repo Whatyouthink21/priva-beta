@@ -16,6 +16,7 @@ import type {
   TvDetail,
   TvSeason,
   MediaType,
+  ProviderCell,
 } from './types'
 
 export class TmdbError extends Error {
@@ -185,6 +186,15 @@ export function discover(type: MediaType, p: DiscoverParams, opts: RequestOption
       ...dated,
     },
     { ttl: 30 * 60_000, ...opts },
+  )
+}
+
+/** The country-specific provider directory includes TMDB's real logo paths. */
+export function providerDirectory(type: MediaType, region: string, signal?: AbortSignal) {
+  return request<{ results: ProviderCell[] }>(
+    `/watch/providers/${type}`,
+    { language: 'en-US', watch_region: region },
+    { ttl: 24 * HOUR, signal },
   )
 }
 

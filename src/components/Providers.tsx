@@ -1,7 +1,10 @@
-import { useMemo } from 'react'
-import { PROVIDERS, providerById, REGIONS } from '../lib/constants'
-import type { ProviderCell, ProvidersPayload } from '../lib/types'
-import { cn, initials } from '../lib/utils'
+import { useMemo, useState } from 'react'
+import * as api from '../lib/tmdb'
+import { hasTmdbKey } from '../lib/env'
+import { MEDIA_BASE, PROVIDERS, REGIONS } from '../lib/constants'
+import type { MediaType, ProviderCell, ProvidersPayload } from '../lib/types'
+import { cn } from '../lib/utils'
+import { useAsync } from '../hooks/useAsync'
 import { IcExternal, IcGlobe } from './icons'
 import { SmartLink } from './SmartLink'
 
@@ -85,19 +88,43 @@ export function StreamingProviders({
   )
 }
 
-function ProviderBadge({ cell, large }: { cell: ProviderCell; large?: boolean }) {
-  const known = providerById(cell.provider_id)
+function ProviderLogo({
+  path,
+  name,
+  size,
+  className,
+}: {
+  path?: string | null
+  name: string
+  size: string
+  className: string
+}) {
+  const [failed, setFailed] = useState(false)
+  if (!path || failed) return null
+  const relativePath = path.startsWith('/') ? path : `/${path}`
   return (
-    <span className={cn('provider', large && 'provider--lg')} title={`${cell.provider_name} — ${known ? 'known source' : 'via TMDB'}`}>
-      <span
-        className="provider__dot"
-        style={{
-          background: known?.color ?? 'var(--color-raise)',
-          color: known?.ink ?? 'var(--color-bone)',
-        }}
-      >
-        {initials(cell.provider_name)}
-      </span>
+    <img
+      className={className}
+      src={`${MEDIA_BASE}/${size}${relativePath}`}
+      alt=""
+      aria-hidden="true"
+      title={`${name} logo`}
+      loading="lazy"
+      decoding="async"
+      onError={() => setFailed(true)}
+    />
+  )
+}
+
+function ProviderBadge({ cell, large }: { cell: ProviderCell; large?: boolean }) {
+  return (
+    <span className={cn('provider', large && 'provider--lg')} title={cell.provider_name}>
+      <ProviderLogo
+        path={cell.logo_path}
+        name={cell.provider_name}
+        size={large ? 'w92' : 'w45'}
+        className={cn('provider__logo', large && 'provider__logo--lg')}
+      />
       {cell.provider_name}
     </span>
   )
@@ -105,18 +132,28 @@ function ProviderBadge({ cell, large }: { cell: ProviderCell; large?: boolean })
 
 /* ------------------------------------------------------------------ *
  * The "By provider" row on Movies / Series.
+ * Provider artwork comes from TMDB's region-specific provider directory.
  * ------------------------------------------------------------------ */
 
 export function ProviderRow({
   value,
   region,
+  kind,
   onChange,
 }: {
   value: number | null
   region: string
+  kind: MediaType
   onChange: (id: number | null) => void
 }) {
-  const sorted = PROVIDERS
+  const hasKey = hasTmdbKey()
+  const { data } = useAsync(
+    (signal) => api.providerDirectory(kind, region, signal),
+    [kind, region],
+    { enabled: hasKey },
+  )
+  const logos = useMemo(() => new Map((data?.results ?? []).map((p) => [p.provider_id, p.logo_path])), [data])
+
   return (
     <div className="prov-filter">
       <span className="field-label" style={{ alignSelf: 'center' }}>
@@ -126,16 +163,15 @@ export function ProviderRow({
         <button className={cn('chip', !value && 'is-on')} onClick={() => onChange(null)}>
           Anywhere
         </button>
-        {sorted.map((p) => (
+        {PROVIDERS.map((p) => (
           <button
             key={p.id}
             className={cn('chip', value === p.id && 'is-on')}
             onClick={() => onChange(value === p.id ? null : p.id)}
             title={`${p.name} · ${REGIONS.find((r) => r.code === region)?.name ?? region}`}
+            aria-label={`Filter by ${p.name}`}
           >
-            <span className="prov-dot" style={{ background: p.color, color: p.ink ?? '#fff' }}>
-              {initials(p.name)}
-            </span>
+            <ProviderLogo path={logos.get(p.id)} name={p.name} size="w45" className="prov-filter__logo" />
             {p.short}
           </button>
         ))}

@@ -52,9 +52,9 @@ function Shell() {
     window.scrollTo({ top: 0, behavior: 'auto' })
   }, [pathname])
 
-  if (bare) return content
-
-  return (
+  const shell = bare ? (
+    content
+  ) : (
     <>
       <a className="skip-link" href="#main">
         Skip to content
@@ -68,6 +68,11 @@ function Shell() {
       <BackToTop />
     </>
   )
+
+  // The picker renders router links inside its modal, so it must live beneath
+  // RouterProvider rather than around it. Keeping it in Shell also gives the
+  // same picker to cards, title pages and the standalone watch room.
+  return <PickerProvider>{shell}</PickerProvider>
 }
 
 /** prefs → document attributes. One place, so the theme can never drift. */
@@ -182,7 +187,7 @@ const router = createBrowserRouter([
   {
     element: <Shell />,
     children: [
-      { path: '/', element: <Home />, handle: { title: 'Priva — movies and TV, quietly' } },
+      { path: '/', element: <Home />, handle: { title: 'Priva — Free, Forever' } },
       { path: '/movies', element: <Movies /> },
       { path: '/series', element: <Series /> },
       { path: '/search', element: <Search /> },
@@ -211,9 +216,7 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <PickerProvider>
-          <RouterProvider router={router} />
-        </PickerProvider>
+        <RouterProvider router={router} />
       </ToastProvider>
     </AuthProvider>
   )

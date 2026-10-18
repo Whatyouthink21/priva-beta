@@ -21,12 +21,12 @@ const code = fs.readFileSync(new URL('./out/app.js', import.meta.url), 'utf8')
 /** sel/text are checked in both modes, warm* only when the fixtures are on */
 const CASES = [
   { path: '/', sel: '.site-head', warmSel: '.hero__title', warmText: 'Continue' },
-  { path: '/movies', sel: '.browse-bar', warmSel: '.card' },
+  { path: '/movies', sel: '.browse-bar', warmSel: '.card', picker: 'card' },
   { path: '/series', sel: '.genre-chips', warmSel: '.card' },
   { path: '/search?q=die', sel: '.search-hero', warmSel: '.card' },
-  { path: '/movie/155', sel: '.site-foot', warmText: ['Netflix', 'Budget', 'Leonardo DiCaprio', 'More like', 'Resume'] },
+  { path: '/movie/155', sel: '.site-foot', warmText: ['Netflix', 'Budget', 'Leonardo DiCaprio', 'More like', 'Resume'], picker: 'detail', logos: true },
   { path: '/movie/155/credits', sel: '.site-foot', warmText: ['Second Assistant Director', 'Grip'] },
-  { path: '/tv/1399', sel: '.site-foot', warmText: ['Season 1', 'Bryan Cranston', 'Vince Gilligan'] },
+  { path: '/tv/1399', sel: '.site-foot', warmText: ['Season 1', 'Bryan Cranston', 'Vince Gilligan'], picker: 'detail' },
   { path: '/tv/1399/credits', sel: '.site-foot', warmText: ['Director'] },
   { path: '/person/287', sel: '.site-foot', warmSel: '.credit-row', warmText: ['Fight Club', 'Crew · 3'] },
   { path: '/collections', sel: '.make-collection', warmSel: '.collection-card' },
@@ -41,10 +41,10 @@ const CASES = [
   { path: '/series?provider=8&genre=18&sort=vote_average.desc', sel: '.filters-open, .browse-bar' },
   { path: '/search?q=brad&in=person', sel: '.search-hero', warmSel: '.person-card' },
   { path: '/my?tab=rated', sel: '.stats-row' },
-  { path: '/settings', sel: '.source-cards', warmText: ['Default source'] },
-  { path: '/sign-in', sel: '.auth-card' },
+  { path: '/settings', sel: '.source-cards', warmText: ['Default server'] },
+  { path: '/sign-in', sel: '.auth-card', warmText: 'Free, Forever.' },
   { path: '/sign-up', sel: '.auth-card' },
-  { path: '/watch/movie/155', sel: 'iframe[src*="vidstuck.cc/embed/movie/155"]', min: 120, warmText: ['Inception'] },
+  { path: '/watch/movie/155', sel: 'iframe[src*="vidstuck.cc/embed/movie/155"]', min: 120, warmText: ['Inception', 'Server 1', 'Server 2'] },
   { path: '/watch/tv/1399/2/4', sel: 'iframe[src*="vidstuck.cc/embed/tv/1399/2/4"]', min: 120, text: 'Next', warmText: ['Next'] },
   { path: '/definitely-not-here', sel: '.nf' },
 ]
@@ -57,7 +57,7 @@ const MODES = [
 let bad = 0
 for (const mode of MODES) {
   console.log(`\n— ${mode.name} —`)
-  for (const { path, sel, text, warmSel, warmText, min = 300 } of CASES) {
+  for (const { path, sel, text, warmSel, warmText, min = 300, picker, logos } of CASES) {
     const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', {
       url: 'http://localhost:5173' + path,
       runScripts: 'outside-only',
@@ -123,6 +123,37 @@ for (const mode of MODES) {
     if (mode.seeded) {
       if (warmSel && !root?.querySelector(warmSel)) missing.push('no ' + warmSel)
       for (const t of want(warmText)) if (!body.includes(t)) missing.push(`no “${t}”`)
+      if (logos && !root?.querySelector('.provider__logo[src*="/w92/p8.jpg"]')) missing.push('no TMDB provider logo')
+      if (picker === 'detail') {
+        if (root?.querySelector('.play-card__sources')) missing.push('detail page still has a server selector')
+        if (root?.querySelector('.col-side, .side-card')) missing.push('detail page still has a sidebar card')
+      }
+
+      if (picker) {
+        const trigger =
+          picker === 'detail'
+            ? [...(root?.querySelectorAll('button') ?? [])].find((button) => button.textContent?.trim() === 'Collection')
+            : root?.querySelector('button[aria-label*="to a collection"]')
+        if (!trigger) {
+          missing.push('no collection picker button')
+        } else {
+          trigger.click()
+          await new Promise((r) => setTimeout(r, 20))
+          const dialog = w.document.querySelector('[role="dialog"]')
+          if (!dialog?.textContent?.includes('Add to a collection')) {
+            missing.push('collection picker did not open')
+          } else {
+            const collection = [...dialog.querySelectorAll('button')].find((button) => button.textContent?.includes('Things to watch on a rainy night'))
+            if (!collection) {
+              missing.push('collection picker did not show saved lists')
+            } else {
+              collection.click()
+              await new Promise((r) => setTimeout(r, 20))
+              if (w.document.querySelector('.overlay')) missing.push('collection picker did not close after selection')
+            }
+          }
+        }
+      }
     }
 
     const flags = noise.filter((n) => !/not wrapped in act|useLayoutEffect|ReactDOMServer|react\.dev\/errors/.test(n))

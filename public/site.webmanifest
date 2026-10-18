@@ -1,7 +1,7 @@
 {
   "name": "Priva",
   "short_name": "Priva",
-  "description": "Movies and TV, quietly. Your list, your place, your sources.",
+  "description": "Priva — Free, Forever. Your list, your place, and your watch progress.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

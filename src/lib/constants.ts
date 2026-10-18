@@ -1,7 +1,7 @@
 import type { MediaType, PlayerSource, PrivaPrefs } from './types'
 
 export const APP_NAME = 'Priva'
-export const APP_TAGLINE = 'Movies and TV, quietly.'
+export const APP_TAGLINE = 'Free, Forever.'
 export const APP_VERSION = '0.9.0'
 
 export const TMDB_BASE = 'https://api.themoviedb.org/3'
@@ -66,38 +66,32 @@ export interface ProviderDef {
   id: number
   name: string
   short: string
-  color: string
-  /** dark text on light logos */
-  ink?: string
 }
 
 /** Curated subset of TMDB's watch-provider ids — the ones people actually
  *  filter by. Everything else still shows up inside a title's own
  *  "Official streaming" block, which comes straight from TMDB. */
 export const PROVIDERS: ProviderDef[] = [
-  { id: 8, name: 'Netflix', short: 'Netflix', color: '#E50914', ink: '#fff' },
-  { id: 119, name: 'Prime Video', short: 'Prime', color: '#1FB4E8', ink: '#04121a' },
-  { id: 337, name: 'Disney+', short: 'Disney+', color: '#113CCF', ink: '#fff' },
-  { id: 1899, name: 'Max', short: 'Max', color: '#7A43E0', ink: '#fff' },
-  { id: 15, name: 'Hulu', short: 'Hulu', color: '#1CE783', ink: '#08120c' },
-  { id: 350, name: 'Apple TV+', short: 'Apple TV+', color: '#D9D9D9', ink: '#141414' },
-  { id: 531, name: 'Paramount+', short: 'Paramount+', color: '#0064FF', ink: '#fff' },
-  { id: 386, name: 'Peacock', short: 'Peacock', color: '#F5A623', ink: '#171106' },
-  { id: 234, name: 'Disney+ Hotstar', short: 'Hotstar', color: '#0e5ce6', ink: '#fff' },
-  { id: 235, name: 'ZEE5', short: 'ZEE5', color: '#7B2CBF', ink: '#fff' },
-  { id: 237, name: 'Sony LIV', short: 'LIV', color: '#f26b1d', ink: '#1a0c02' },
-  { id: 283, name: 'Crunchyroll', short: 'Crunchy', color: '#F47521', ink: '#1a0d02' },
-  { id: 330, name: 'MUBI', short: 'MUBI', color: '#E6E6E6', ink: '#111' },
-  { id: 421, name: 'AMC+', short: 'AMC+', color: '#00A0DF', ink: '#03131c' },
+  { id: 8, name: 'Netflix', short: 'Netflix' },
+  { id: 119, name: 'Prime Video', short: 'Prime' },
+  { id: 337, name: 'Disney+', short: 'Disney+' },
+  { id: 1899, name: 'Max', short: 'Max' },
+  { id: 15, name: 'Hulu', short: 'Hulu' },
+  { id: 350, name: 'Apple TV+', short: 'Apple TV+' },
+  { id: 531, name: 'Paramount+', short: 'Paramount+' },
+  { id: 386, name: 'Peacock', short: 'Peacock' },
+  { id: 234, name: 'Disney+ Hotstar', short: 'Hotstar' },
+  { id: 235, name: 'ZEE5', short: 'ZEE5' },
+  { id: 237, name: 'Sony LIV', short: 'LIV' },
+  { id: 283, name: 'Crunchyroll', short: 'Crunchy' },
+  { id: 330, name: 'MUBI', short: 'MUBI' },
+  { id: 421, name: 'AMC+', short: 'AMC+' },
 ]
-
-export const providerById = (id: number): ProviderDef | undefined => PROVIDERS.find((p) => p.id === id)
 
 export interface SourceDef {
   id: PlayerSource
   name: string
   blurb: string
-  docs: string
   quality: string
   subs: string
 }
@@ -105,19 +99,17 @@ export interface SourceDef {
 export const SOURCES: SourceDef[] = [
   {
     id: 'vidstuck',
-    name: 'Vidstuck',
-    blurb: 'The default. Widest server pool, in-player episode selector, Netflix-style pause overlay.',
-    docs: 'https://vidstuck.cc/',
+    name: 'Server 1',
+    blurb: 'The primary stream, with a wide server pool and in-player episode controls.',
     quality: 'up to 4K',
-    subs: 'we pass your language through',
+    subs: 'multiple subtitle languages',
   },
   {
     id: 'tgvid',
-    name: 'TGVID',
-    blurb: 'Second opinion. Skip intro/outro and per-episode resume — good when a Vidstuck server is dead.',
-    docs: 'https://tgvid.lovable.app/docs',
+    name: 'Server 2',
+    blurb: 'An alternate stream with intro skipping and per-episode resume.',
     quality: '1080p',
-    subs: 'straight from the stream',
+    subs: 'subtitles included with the stream',
   },
 ]
 

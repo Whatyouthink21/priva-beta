@@ -4,7 +4,6 @@ import { useStore } from '../hooks/useStore'
 import { createCollection, toggleInCollection } from '../lib/store'
 import { COLLECTION_ACCENTS } from '../lib/constants'
 import { cn } from '../lib/utils'
-import { cardHref } from '../lib/card'
 import type { TitleMeta } from '../lib/types'
 import { IcCheck, IcPlus } from '../components/icons'
 import { useToast } from './ToastProvider'
@@ -33,15 +32,20 @@ export function PickerProvider({ children }: { children: ReactNode }) {
     setTarget(meta)
     setName('')
   }, [])
+  const close = useCallback(() => {
+    setTarget(null)
+    setName('')
+  }, [])
 
   const api = useMemo(() => ({ open }), [open])
 
   const create = () => {
-    if (!name.trim()) return
-    const col = createCollection(name, '', COLLECTION_ACCENTS[data.collections.length % COLLECTION_ACCENTS.length])
+    const cleanName = name.trim()
+    if (!cleanName) return
+    const col = createCollection(cleanName, '', COLLECTION_ACCENTS[data.collections.length % COLLECTION_ACCENTS.length])
     if (target) toggleInCollection(col.id, target)
-    toast.push(`Created “${col.name}”`, { kind: 'ok' })
-    setName('')
+    toast.push(target ? `Created “${col.name}” and added ${target.title}` : `Created “${col.name}”`, { kind: 'ok' })
+    close()
   }
 
   return (
@@ -49,7 +53,7 @@ export function PickerProvider({ children }: { children: ReactNode }) {
       {children}
       <Modal
         open={!!target}
-        onClose={() => setTarget(null)}
+        onClose={close}
         title="Add to a collection"
         subtitle={target?.title}
       >
@@ -66,6 +70,7 @@ export function PickerProvider({ children }: { children: ReactNode }) {
                     kind: 'ok',
                     action: { label: 'Undo', run: () => toggleInCollection(c.id, target) },
                   })
+                  close()
                 }}
                 style={{ color: has ? 'var(--color-bone)' : undefined }}
               >
@@ -90,6 +95,7 @@ export function PickerProvider({ children }: { children: ReactNode }) {
             placeholder="New collection name"
             value={name}
             maxLength={48}
+            data-autofocus
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && create()}
           />
@@ -100,24 +106,15 @@ export function PickerProvider({ children }: { children: ReactNode }) {
 
         <div className={cn('hint', 'picker-foot')}>
           {user ? (
-            <>
-              Collections live in your account.{' '}
-              {target ? (
-                <SmartLink
-                  to={cardHref(target.type, target.id, target.title)}
-                  onClick={() => setTarget(null)}
-                  style={{ color: 'var(--color-flare)' }}
-                >
-                  Open {target.title}
-                </SmartLink>
-              ) : null}
-            </>
+            <>Your collections sync with your account.</>
           ) : (
             <>
-              Saved on this device only. <SmartLink to="/sign-in" onClick={() => setTarget(null)}>Sign in</SmartLink> to carry them
-              across devices.
+              Saved on this device only. <SmartLink to="/sign-in" onClick={close}>Sign in</SmartLink> to carry them across devices.
             </>
-          )}
+          )}{' '}
+          <SmartLink to="/collections" onClick={close} style={{ color: 'var(--color-flare)' }}>
+            View collections
+          </SmartLink>
         </div>
       </Modal>
     </Ctx.Provider>

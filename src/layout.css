@@ -65,55 +65,11 @@
     }
   }
 
-  .two-col {
-    display: grid;
-    gap: 26px;
-    grid-template-columns: minmax(0, 1fr);
-  }
-  @media (min-width: 1000px) {
-    .two-col {
-      grid-template-columns: minmax(0, 1.62fr) minmax(300px, 0.9fr);
-      gap: 40px;
-      align-items: start;
-    }
-  }
-  /* both columns refuse to grow past their track, so nothing from the story
-     column can ever slide under the sidebar */
-  .two-col > * {
-    min-width: 0;
-  }
-  .col-main {
+  .detail-stack {
     display: grid;
     gap: 16px;
     min-width: 0;
     overflow-x: clip;
-  }
-  .col-side {
-    display: grid;
-    gap: 16px;
-    min-width: 0;
-    align-content: start;
-    position: relative;
-    z-index: 1;
-  }
-  @media (min-width: 1000px) {
-    .col-side {
-      position: sticky;
-      top: 78px;
-    }
-  }
-  /* on small screens the sidebar dissolves into the page flow so the poster
-     can lead and the rest follows the story column */
-  @media (max-width: 999px) {
-    .col-side {
-      display: contents;
-    }
-    .col-side > * {
-      order: 2;
-    }
-    .col-side > .side-card {
-      order: -1;
-    }
   }
 
   /* boot splash --------------------------------------------------- */

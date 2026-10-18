@@ -5,14 +5,14 @@ import { useAsync } from '../hooks/useAsync'
 import { useStore } from '../hooks/useStore'
 import { cn, runtime, year } from '../lib/utils'
 import { COUNTRY_NAME } from '../lib/constants'
-import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights, SideCard } from '../components/DetailBits'
+import { DetailHero, Facts, ImdbRow, MoreLikeThis, PlayCard, RateThis, CrewHighlights } from '../components/DetailBits'
 import { CastStrip, CreditsTable } from '../components/CastCrew'
 import { StreamingProviders } from '../components/Providers'
 import { SeasonBrowser } from '../components/SeasonBrowser'
 import { Downloads } from '../components/Downloads'
 import { ErrorNote, PageHead } from '../components/Bits'
 import { Modal } from '../components/Modal'
-import { IcDownload, IcExternal, IcLink } from '../components/icons'
+import { IcExternal } from '../components/icons'
 import { NoKey } from './MovieDetail'
 import { hasTmdbKey } from '../lib/env'
 import type { TvDetail as Show, TvEpisode } from '../lib/types'
@@ -38,7 +38,6 @@ export default function TvPage({ mode }: { mode?: 'credits' }) {
 
 function ShowView({ show, region, onRegion }: { show: Show; region: string; onRegion: (r: string) => void }) {
   const [download, setDownload] = useState<{ season: number; episode: number; name: string } | null>(null)
-  const [copied, setCopied] = useState(false)
   const [season, setSeason] = useState<number | undefined>(undefined)
   const { data: userData } = useStore()
   const meta = api.toMeta({ ...show, media_type: 'tv', name: show.name })
@@ -96,134 +95,72 @@ function ShowView({ show, region, onRegion }: { show: Show; region: string; onRe
       />
 
       <div className="wrap page">
-        <div className="two-col">
-          <div className="col-main">
-            <SeasonBrowser
-              show={show}
-              season={season}
-              onSeasonChange={setSeason}
-              onDownload={(ep: TvEpisode, seasonNo: number) => setDownload({ season: seasonNo, episode: ep.episode_number, name: ep.name })}
-            />
+        <div className="detail-stack">
+          <SeasonBrowser
+            show={show}
+            season={season}
+            onSeasonChange={setSeason}
+            onDownload={(ep: TvEpisode, seasonNo: number) => setDownload({ season: seasonNo, episode: ep.episode_number, name: ep.name })}
+          />
 
-            <PlayCard
-              meta={meta}
-              season={playSeason}
-              episode={playEpisode}
-              onDownload={() => setDownload({ season: playSeason, episode: playEpisode, name: `S${playSeason}·E${playEpisode}` })}
-            />
+          <PlayCard
+            meta={meta}
+            season={playSeason}
+            episode={playEpisode}
+            onDownload={() => setDownload({ season: playSeason, episode: playEpisode, name: `S${playSeason}·E${playEpisode}` })}
+          />
 
-            <Facts
-              wide
-              items={[
-                {
-                  label: 'IMDb',
-                  value: show.imdb_id ? (
-                    <a href={`https://www.imdb.com/title/${show.imdb_id}/`} target="_blank" rel="noreferrer noopener" className="num">
-                      {show.imdb_id} <IcExternal size={11} style={{ verticalAlign: -1 }} />
-                    </a>
-                  ) : null,
-                },
-                { label: 'Score', value: show.vote_average ? `${show.vote_average.toFixed(1)} / 10 · ${show.vote_count?.toLocaleString()} votes` : null },
-                { label: 'Premiered', value: firstDate ? new Date(firstDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : year(firstDate) },
-                { label: 'Ended', value: !onAirNow && lastDate ? new Date(lastDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : null },
-                { label: 'Created by', value: creators.join(', ') },
-                { label: 'Networks', value: (show.networks ?? []).map((n) => n.name).join(', ') },
-                { label: 'Country', value: (show.origin_country ?? []).map((c) => COUNTRY_NAME[c] ?? c).join(', ') },
-                { label: 'Languages', value: (show.languages ?? []).map((l) => l.toUpperCase()).join(', ') },
-                { label: 'Seasons', value: String(show.number_of_seasons) },
-                { label: 'Episodes', value: String(show.number_of_episodes) },
-                { label: 'Typical length', value: avgEpisode ? runtime(avgEpisode) : null },
-                { label: 'Type', value: show.type },
-                { label: 'Certification', value: cert },
-                { label: 'Status', value: show.status },
-              ]}
-            />
-
-            <section className="panel">
-              <div className="panel__head">
-                <h3>Your take</h3>
-                <div className="grow" />
-                <span className="hint">{show.status}</span>
-              </div>
-              <RateThis meta={meta} />
-              {show.keywords?.results?.length ? (
-                <div className="tag-row">
-                  {show.keywords.results.slice(0, 12).map((k) => (
-                    <span className="badge" key={k.id}>
-                      {k.name}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-            </section>
-
-            <StreamingProviders payload={show['watch/providers']} region={region} onRegion={onRegion} />
-
-            {cast.length ? <CastStrip cast={cast} seeAllTo={`/tv/${show.id}/credits`} /> : null}
-            <CrewHighlights crew={crew} />
-
-            <MoreLikeThis type="tv" id={show.id} title={show.name} />
-          </div>
-
-          <aside className="col-side">
-            <SideCard
-              poster={show.poster_path}
-              title={show.name}
-              year={year(firstDate)}
-              runtimeLabel={avgEpisode ? `${runtime(avgEpisode)}/ep` : null}
-              score={show.vote_average}
-              votes={show.vote_count}
-              certification={cert}
-            />
-
-            <section className="panel">
-              <div className="panel__head">
-                <h3>Jump to a season</h3>
-                <div className="grow" />
-                <span className="hint">{seasons.length}</span>
-              </div>
-              <div className="link-list">
-                {seasons.slice(0, 12).map((s) => (
-                  <a
-                    key={s.id ?? s.season_number}
-                    href="#episodes"
-                    aria-current={s.season_number === playSeason ? 'true' : undefined}
-                    onClick={() => setSeason(s.season_number)}
-                  >
-                    {s.name}
-                    <small>{s.episode_count} eps</small>
+          <Facts
+            wide
+            items={[
+              {
+                label: 'IMDb',
+                value: show.imdb_id ? (
+                  <a href={`https://www.imdb.com/title/${show.imdb_id}/`} target="_blank" rel="noreferrer noopener" className="num">
+                    {show.imdb_id} <IcExternal size={11} style={{ verticalAlign: -1 }} />
                   </a>
+                ) : null,
+              },
+              { label: 'Score', value: show.vote_average ? `${show.vote_average.toFixed(1)} / 10 · ${show.vote_count?.toLocaleString()} votes` : null },
+              { label: 'Premiered', value: firstDate ? new Date(firstDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : year(firstDate) },
+              { label: 'Ended', value: !onAirNow && lastDate ? new Date(lastDate).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : null },
+              { label: 'Created by', value: creators.join(', ') },
+              { label: 'Networks', value: (show.networks ?? []).map((n) => n.name).join(', ') },
+              { label: 'Country', value: (show.origin_country ?? []).map((c) => COUNTRY_NAME[c] ?? c).join(', ') },
+              { label: 'Languages', value: (show.languages ?? []).map((l) => l.toUpperCase()).join(', ') },
+              { label: 'Seasons', value: String(show.number_of_seasons) },
+              { label: 'Episodes', value: String(show.number_of_episodes) },
+              { label: 'Typical length', value: avgEpisode ? runtime(avgEpisode) : null },
+              { label: 'Type', value: show.type },
+              { label: 'Certification', value: cert },
+              { label: 'Status', value: show.status },
+            ]}
+          />
+
+          <section className="panel">
+            <div className="panel__head">
+              <h3>Your take</h3>
+              <div className="grow" />
+              <span className="hint">{show.status}</span>
+            </div>
+            <RateThis meta={meta} />
+            {show.keywords?.results?.length ? (
+              <div className="tag-row">
+                {show.keywords.results.slice(0, 12).map((k) => (
+                  <span className="badge" key={k.id}>
+                    {k.name}
+                  </span>
                 ))}
               </div>
-            </section>
+            ) : null}
+          </section>
 
-            <section className="panel">
-              <div className="panel__head">
-                <h3>Share</h3>
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button
-                  className="btn btn--sm btn--outline"
-                  onClick={() => {
-                    void navigator.clipboard?.writeText(location.href)
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 1800)
-                  }}
-                >
-                  <IcLink size={14} /> {copied ? 'Copied' : 'Copy link'}
-                </button>
-                <a className="btn btn--sm btn--outline" href={`https://www.themoviedb.org/tv/${show.id}`} target="_blank" rel="noreferrer noopener">
-                  TMDB <IcExternal size={13} />
-                </a>
-                <button
-                  className="btn btn--sm btn--outline"
-                  onClick={() => setDownload({ season: playSeason, episode: playEpisode, name: `S${playSeason}·E${playEpisode}` })}
-                >
-                  <IcDownload size={14} /> Downloads
-                </button>
-              </div>
-            </section>
-          </aside>
+          <StreamingProviders payload={show['watch/providers']} region={region} onRegion={onRegion} />
+
+          {cast.length ? <CastStrip cast={cast} seeAllTo={`/tv/${show.id}/credits`} /> : null}
+          <CrewHighlights crew={crew} />
+
+          <MoreLikeThis type="tv" id={show.id} title={show.name} />
         </div>
       </div>
 

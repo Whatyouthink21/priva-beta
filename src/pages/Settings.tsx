@@ -54,7 +54,7 @@ export default function SettingsPage() {
       <PageHead
         kicker="Make it yours"
         title="Settings"
-        lead="One page for the things worth choosing: which source plays by default, what your region is, where your list lives. Nothing here is required."
+        lead="One page for the things worth choosing: which server plays by default, what your region is, where your list lives. Nothing here is required."
       />
 
       {/* ---------------- account ---------------- */}
@@ -183,7 +183,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="field-label" style={{ marginBottom: 8 }}>
-          Default source
+          Default server
         </div>
         <div className="source-cards">
           {SOURCES.map((s) => (
@@ -201,44 +201,41 @@ export default function SettingsPage() {
                 <span className="badge">{s.quality}</span>
                 <span className="badge">{s.subs}</span>
               </span>
-              <span className="hint" style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}>
-                {s.docs.replace(/^https:\/\//, '')} <IcExternal size={11} />
-              </span>
             </button>
           ))}
         </div>
 
         <div className="settings-grid" style={{ marginTop: 16 }}>
           <label className="field">
-            <span>Preferred server (Vidstuck)</span>
+            <span>Preferred server (Server 1)</span>
             <input
               className="input"
               value={prefs.server}
               placeholder="valstrax"
               onChange={(e) => setPrefs({ server: e.target.value.replace(/[^a-z0-9_-]/gi, '') })}
             />
-            <span className="hint">Blank lets the player pick. Names come from the provider, not from Priva.</span>
+            <span className="hint">Leave blank to let Server 1 choose automatically.</span>
           </label>
 
           <label className="field">
             <span>Loading screen text</span>
             <input className="input" value={prefs.branding} maxLength={24} onChange={(e) => setPrefs({ branding: e.target.value })} />
-            <span className="hint">Branding line Vidstuck shows while it buffers.</span>
+            <span className="hint">Text shown by Server 1 while it buffers.</span>
           </label>
 
           <label className="field">
-            <span>Subtitle language (Vidstuck)</span>
+            <span>Subtitle language (Server 1)</span>
             <select className="select" value={prefs.subtitle} onChange={(e) => setPrefs({ subtitle: e.target.value })}>
               {['english', 'hindi', 'spanish', 'french', 'german', 'italian', 'portuguese', 'japanese', 'korean', 'none'].map((l) => (
                 <option key={l} value={l}>
-                  {l === 'none' ? 'none — keep whatever the source has' : l}
+                  {l === 'none' ? 'none — keep the server default' : l}
                 </option>
               ))}
             </select>
           </label>
 
           <label className="field">
-            <span>Audio language (TGVID)</span>
+            <span>Audio language (Server 2)</span>
             <select className="select" value={prefs.tgvidLang} onChange={(e) => setPrefs({ tgvidLang: e.target.value })}>
               <option value="">let the player choose</option>
               <option value="eng">English</option>

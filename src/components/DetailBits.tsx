@@ -2,18 +2,17 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { useStore } from '../hooks/useStore'
 import { useAsync } from '../hooks/useAsync'
 import * as api from '../lib/tmdb'
-import { SOURCES } from '../lib/constants'
 import { cn } from '../lib/utils'
 import { personHref } from '../lib/card'
 import { HeroTrailer } from './HeroTrailer'
 import { SmartLink } from './SmartLink'
 import { Poster } from './Poster'
 import { Rail } from './Rail'
-import { IcBookmark, IcBookmarkFilled, IcCheck, IcDownload, IcExternal, IcLayers, IcPlay, IcStar } from './icons'
-import { inMyList, rateTitle, setPrefs, toggleMyList } from '../lib/store'
+import { IcBookmark, IcBookmarkFilled, IcDownload, IcExternal, IcLayers, IcPlay, IcStar } from './icons'
+import { inMyList, rateTitle, toggleMyList } from '../lib/store'
 import { useToast } from '../contexts/ToastProvider'
 import { usePicker } from '../contexts/PickerProvider'
-import type { CrewMember, MediaType, PlayerSource, TitleMeta } from '../lib/types'
+import type { CrewMember, MediaType, TitleMeta } from '../lib/types'
 
 /* ------------------------------------------------------------------ *
  * hero for a title page — same trailer machinery as the home hero, but
@@ -103,7 +102,7 @@ export function DetailHero({
 }
 
 /* ------------------------------------------------------------------ *
- * the play block: source switch + resume + download
+ * the play block: play + download. Server switching stays in the player.
  * ------------------------------------------------------------------ */
 
 export function PlayCard({
@@ -117,26 +116,8 @@ export function PlayCard({
   episode?: number
   onDownload?: () => void
 }) {
-  const { prefs } = useStore()
-  const toast = useToast()
-  const source: PlayerSource = prefs.defaultSource
   return (
     <div className="play-card">
-      <div className="play-card__sources">
-        {SOURCES.map((s) => (
-          <button
-            key={s.id}
-            className={cn('chip', source === s.id && 'is-on')}
-            onClick={() => {
-              setPrefs({ defaultSource: s.id })
-              toast.push(`Default source set to ${s.name}`, { kind: 'info' })
-            }}
-            title={s.blurb}
-          >
-            {s.id === source ? <IcCheck size={14} /> : <IcPlay size={13} />} {s.name}
-          </button>
-        ))}
-      </div>
       <div className="play-card__row">
         <SmartLink
           className="btn btn--primary"
@@ -151,9 +132,6 @@ export function PlayCard({
           </button>
         ) : null}
       </div>
-      <p className="hint" style={{ marginTop: 10 }}>
-        {SOURCES.find((s) => s.id === source)?.blurb}
-      </p>
     </div>
   )
 }
@@ -198,50 +176,6 @@ export function Facts({
   )
 }
 
-/** The little identity card that heads the sidebar: poster thumb, title and
- *  the three numbers that matter. A full-size poster used to sit here and
- *  pushed everything else off the screen. */
-export function SideCard({
-  poster,
-  title,
-  year,
-  runtimeLabel,
-  score,
-  votes,
-  certification,
-}: {
-  poster?: string | null
-  title: string
-  year?: number | string | null
-  runtimeLabel?: string | null
-  score?: number | null
-  votes?: number | null
-  certification?: string | null
-}) {
-  return (
-    <div className="side-card">
-      <div className="side-card__art">
-        <Poster path={poster} size="w342" alt={`${title} poster`} />
-      </div>
-      <div className="side-card__body">
-        <div className="side-card__title">{title}</div>
-        <div className="side-card__meta">
-          {[year, runtimeLabel, certification].filter(Boolean).join(' · ')}
-        </div>
-        {score ? (
-          <div className="side-card__score">
-            <span className="rating">
-              <i>★</i>
-              {score.toFixed(1)}
-            </span>
-            {votes ? <span className="hint num">{votes.toLocaleString()} votes</span> : null}
-          </div>
-        ) : null}
-      </div>
-    </div>
-  )
-}
-
 export function RatingBadge({ value, count, label = 'TMDB' }: { value?: number | null; count?: number; label?: string }) {
   if (!value) return null
   return (
@@ -262,7 +196,7 @@ export function ImdbRow({ imdbId }: { imdbId?: string | null }) {
   if (!imdbId) return null
   return (
     <a className="provider" href={`https://www.imdb.com/title/${imdbId}/`} target="_blank" rel="noreferrer noopener" style={{ marginTop: 8 }}>
-      <span className="provider__dot" style={{ background: 'var(--color-gold)', color: '#191201' }}>
+      <span className="provider__imdb">
         IMDb
       </span>
       {state ? (
